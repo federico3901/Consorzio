@@ -25,7 +25,7 @@ const FOV = 28;
 const GAP = 4.2;
 const LIFT = 6;
 const VIEWS = { axo: { az: 36, el: 30 }, plan: { az: 0, el: 89 }, front: { az: 0, el: 5 } };
-const THEME_KEY = "piazza-beretta.3d.tema";
+const THEME_KEY = "piazza-beretta.3d.tema2";
 const NONE = { floor: null, unit: null };
 
 const GROUPS = ["day", "night", "bath", "serv", "park", "dist", "out", "plant"];
@@ -788,7 +788,7 @@ function distSeg([x, y], [ax, ay], [bx, by]) {
 /* ------------------------------------------------------------------ UI */
 
 const state = {
-  theme: "chiaro",
+  theme: "scuro",
   explode: 0,
   isolate: false,
   focus: { ...NONE },
@@ -959,6 +959,7 @@ function renderRight() {
       </section>
       <div class="b3d-acts b3d-pad">
         <a href="../#contatti" class="b3d-act b3d-act-main" data-ask="${esc(info.id)}">Chiedi info</a>
+        ${{ "4": "4", "10": "4", "21": "21", "25": "25" }[info.id] ? `<a href="interno.html?u=${{ "4": "4", "10": "4", "21": "21", "25": "25" }[info.id]}" class="b3d-act">Pianta e vista interna</a>` : ""}
         <a href="../assets/${f.id === "pt" ? "pianta-pt.png" : f.id === "p3" ? "pianta-p3.png" : f.id === "p4" ? "pianta-p4.png" : f.id === "p5" ? "pianta-p5.png" : "pianta-p12.png"}" target="_blank" rel="noopener" class="b3d-act">Pianta del piano</a>
       </div>`;
   } else if (f) {
@@ -1124,7 +1125,7 @@ try {
 } catch {
   /* follow the default */
 }
-applyTheme(saved === "scuro" || saved === "chiaro" ? saved : "chiaro", false);
+applyTheme(saved === "scuro" || saved === "chiaro" ? saved : "scuro", false);
 document.querySelectorAll("#themes [data-theme]").forEach((b) => b.addEventListener("click", () => applyTheme(b.dataset.theme, true)));
 
 function updateModes() {

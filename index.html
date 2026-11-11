@@ -137,6 +137,21 @@ a{color:inherit;text-decoration:none}
 .floors button{font-family:var(--sans);font-size:11px;letter-spacing:.1em;text-transform:uppercase;background:transparent;border:1px solid #b9b3ad;color:#444;padding:8px 14px;cursor:pointer;transition:.25s}
 .floors button:hover{background:var(--navy);border-color:var(--navy);color:#fff}
 
+.card.tipo{padding-bottom:16px}
+.card .tipo-ph{height:175px}
+.tipo-ph{background:#030b18 !important;background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px) !important;background-size:12px 12px !important}
+.tipo-ph img{object-fit:contain !important;padding:10px;transition:transform .5s}
+.card.tipo:hover .tipo-ph img{transform:scale(1.06)}
+.card.tipo .lab{padding:18px 0 12px}
+.tipo-acts{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin:0 2px;border:1px solid rgba(181,143,84,.55)}
+.tipo-acts button{font-family:var(--sans);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#e9d9bb;background:transparent;border:0;padding:8px 4px;cursor:pointer;transition:.25s}
+.tipo-acts button:hover{background:var(--gold);color:#fff}
+.tipo-acts button+button{border-left:1px solid rgba(181,143,84,.55)}
+#tipoBox{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center}
+#tipoBox.open{display:flex}
+#tipoBox iframe{width:min(1340px,94vw);height:min(860px,90vh);border:0;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+#tipoBox .x{position:absolute;top:14px;right:22px;background:none;border:0;color:#fff;font:300 40px/1 var(--sans);cursor:pointer}
+@media (max-width:860px){#tipoBox iframe{width:100vw;height:100%}#tipoBox .x{top:6px;right:10px;z-index:2}}
 /* ---------- PARALLAX ---------- */
 .parallax{height:720px;background:url(assets/residenza-fronte.jpg) 50% 30%/cover fixed no-repeat}
 
@@ -394,17 +409,20 @@ footer .cr{font-size:8.5px;letter-spacing:.06em;margin-top:12px;opacity:.85}
   <h2 class="h-sans reveal">Scopri alcune delle tipologie abitative disponibili</h2>
   <p class="lead reveal">Piazza Beretta offre un'ampia varietà di tagli e soluzioni abitative in grado di soddisfare ogni tipo di necessità.</p>
   <div class="cards reveal">
-    <div class="card" data-plan="0">
-      <div class="ph"><img src="assets/residenza-angolo-1.jpg" alt="Piano tipo"><img class="plan" src="assets/pianta-p12.png" alt="Pianta piano tipo"></div>
-      <div class="lab">Piano tipo<small>PIANI 1 – 2 – 3</small></div>
+    <div class="card tipo" data-u="4">
+      <div class="ph tipo-ph"><img src="assets/tipi/tipo-4.svg" alt="Pianta dell'interno 4, bilocale"></div>
+      <div class="lab">Bilocale<small>INT. 4 · 44 M² + LOGGIA</small></div>
+      <div class="tipo-acts"><button type="button" data-v="plan">Pianta</button><button type="button" data-v="interna">Vista interna</button></div>
     </div>
-    <div class="card" data-plan="2">
-      <div class="ph"><img src="assets/residenza-fronte.jpg" alt="Grandi metrature"><img class="plan" src="assets/pianta-p4.png" alt="Pianta piano quarto"></div>
-      <div class="lab">Grandi metrature<small>PIANO 4 · FINO A 183 MQ</small></div>
+    <div class="card tipo" data-u="25">
+      <div class="ph tipo-ph"><img src="assets/tipi/tipo-25.svg" alt="Pianta dell'interno 25, trilocale con cucina"></div>
+      <div class="lab">Trilocale con cucina<small>INT. 25 · 93 M² + TERRAZZO</small></div>
+      <div class="tipo-acts"><button type="button" data-v="plan">Pianta</button><button type="button" data-v="interna">Vista interna</button></div>
     </div>
-    <div class="card" data-plan="3">
-      <div class="ph"><img src="assets/residenza-angolo-2.jpg" alt="Attici"><img class="plan" src="assets/pianta-p5.png" alt="Pianta attici"></div>
-      <div class="lab">Attici<small>PIANO 5 · CON TERRAZZO</small></div>
+    <div class="card tipo" data-u="21">
+      <div class="ph tipo-ph"><img src="assets/tipi/tipo-21.svg" alt="Pianta dell'interno 21, cinque locali"></div>
+      <div class="lab">Cinque locali<small>INT. 21 · 125 M² + BALCONI</small></div>
+      <div class="tipo-acts"><button type="button" data-v="plan">Pianta</button><button type="button" data-v="interna">Vista interna</button></div>
     </div>
   </div>
   <h2 class="after reveal">Per avere informazioni su tutte le soluzioni abitative ancora disponibili, compila il form di richiesta informazioni.</h2>
@@ -492,6 +510,9 @@ footer .cr{font-size:8.5px;letter-spacing:.06em;margin-top:12px;opacity:.85}
   <p class="cr">Visual Design - Communication &amp; Marketing by DS DIGITAL TEAM</p>
 </footer>
 
+<!-- APPARTAMENTI TIPO -->
+<div id="tipoBox" role="dialog" aria-modal="true" aria-label="Appartamento tipo"><button class="x" aria-label="Chiudi">×</button><iframe title="Appartamento tipo" allow="fullscreen"></iframe></div>
+
 <!-- LIGHTBOX -->
 <div class="lb" id="lb" role="dialog" aria-modal="true">
   <button class="x" aria-label="Chiudi">×</button>
@@ -562,7 +583,22 @@ document.querySelector('.carousel').addEventListener('mouseenter',()=>clearInter
 document.querySelector('.carousel').addEventListener('mouseleave',()=>auto=setInterval(()=>go(pos+1),5000));
 
 /* ===== PLANIMETRIE ===== */
-document.querySelectorAll('.card').forEach(c=>c.onclick=()=>openLb(PLANS,+c.dataset.plan));
+/* ===== APPARTAMENTI TIPO ===== */
+const tipoBox=document.getElementById('tipoBox'),tipoFrame=tipoBox.querySelector('iframe');
+function openTipo(u,v){tipoFrame.src=`3d/interno.html?u=${u}${v==='interna'?'&vista=interna':''}`;tipoBox.classList.add('open');document.body.style.overflow='hidden';setTimeout(()=>tipoFrame.focus(),300)}
+function closeTipo(){tipoBox.classList.remove('open');document.body.style.overflow='';tipoFrame.src='about:blank'}
+document.querySelectorAll('.card.tipo').forEach(c=>{
+  c.addEventListener('click',e=>{const b=e.target.closest('[data-v]');openTipo(c.dataset.u,b?b.dataset.v:'plan')});
+});
+tipoBox.querySelector('.x').onclick=closeTipo;
+tipoBox.addEventListener('click',e=>{if(e.target===tipoBox)closeTipo()});
+addEventListener('keydown',e=>{if(e.key==='Escape'&&tipoBox.classList.contains('open'))closeTipo()});
+addEventListener('message',e=>{
+  if(e.origin!==location.origin)return;
+  const d=e.data||{};
+  if(d.type==='pb-close')closeTipo();
+  if(d.type==='pb-ask'){closeTipo();document.getElementById('msg').value=d.message||'';document.getElementById('contatti').scrollIntoView({behavior:'smooth'})}
+});
 const floors=document.getElementById('floors');
 PLANS.forEach(([src,cap],i)=>{const b=document.createElement('button');b.textContent=cap;b.onclick=()=>openLb(PLANS,i);floors.appendChild(b)});
 
