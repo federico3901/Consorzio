@@ -180,7 +180,7 @@ class BuildingEngine {
     this.pal = null;
     this.explode = 0;
     this.explodeNow = 0;
-    this.isolate = false;
+    this.isolate = true; // a selected floor or apartment is always shown on its own
     this.focus = { ...NONE };
     this.hoverRoom = null;
     this.layers = { labels: true, dims: false, furniture: true };
@@ -789,8 +789,6 @@ function distSeg([x, y], [ax, ay], [bx, by]) {
 
 const state = {
   theme: "scuro",
-  explode: 0,
-  isolate: false,
   focus: { ...NONE },
   hover: null,
   layers: { labels: true, dims: false, furniture: true },
@@ -812,12 +810,7 @@ function select(next) {
   }
   state.focus = next;
   state.sheet = next.floor !== null;
-  if (!next.floor && state.isolate) {
-    state.isolate = false;
-    engine?.setIsolate(false);
-  }
   engine?.setFocus(next);
-  updateModes();
   history.replaceState(null, "", next.unit ? `#${next.unit}` : next.floor ? `#${next.floor}` : location.pathname);
   renderPanels();
   updateOverlayState();
@@ -959,7 +952,7 @@ function renderRight() {
       </section>
       <div class="b3d-acts b3d-pad">
         <a href="../#contatti" class="b3d-act b3d-act-main" data-ask="${esc(info.id)}">Chiedi info</a>
-        ${{ "4": "4", "10": "4", "21": "21", "25": "25" }[info.id] ? `<a href="interno.html?u=${{ "4": "4", "10": "4", "21": "21", "25": "25" }[info.id]}" class="b3d-act">Pianta e vista interna</a>` : ""}
+        ${{ "4": "4", "10": "4", "21": "21", "25": "25" }[info.id] ? `<a href="tipo.html?u=${{ "4": "4", "10": "4", "21": "21", "25": "25" }[info.id]}" class="b3d-act">Pianta e tour</a>` : ""}
         <a href="../assets/${f.id === "pt" ? "pianta-pt.png" : f.id === "p3" ? "pianta-p3.png" : f.id === "p4" ? "pianta-p4.png" : f.id === "p5" ? "pianta-p5.png" : "pianta-p12.png"}" target="_blank" rel="noopener" class="b3d-act">Pianta del piano</a>
       </div>`;
   } else if (f) {
@@ -1100,8 +1093,8 @@ function updatePads() {
   state.narrow = w < 860;
   app.dataset.narrow = state.narrow ? "true" : "false";
   const pads = state.narrow
-    ? { t: 52 + 48, l: 0, r: 0, b: 64 + (state.sheet ? Math.round(h * 0.46) : 0) }
-    : { t: 52 + 8, l: w < 1100 ? 244 : 272, r: w < 1100 ? 352 : 392, b: 30 + 100 };
+    ? { t: 52 + 48, l: 0, r: 0, b: 16 + (state.sheet ? Math.round(h * 0.46) : 0) }
+    : { t: 52 + 8, l: w < 1100 ? 244 : 272, r: w < 1100 ? 352 : 392, b: 30 + 50 };
   engine?.setPads(pads);
 }
 
@@ -1128,34 +1121,6 @@ try {
 applyTheme(saved === "scuro" || saved === "chiaro" ? saved : "scuro", false);
 document.querySelectorAll("#themes [data-theme]").forEach((b) => b.addEventListener("click", () => applyTheme(b.dataset.theme, true)));
 
-function updateModes() {
-  const has = state.focus.floor !== null;
-  const b = document.querySelector('#modes [data-mode="building"]');
-  const i = document.querySelector('#modes [data-mode="isolate"]');
-  b.setAttribute("aria-pressed", String(!state.isolate));
-  i.setAttribute("aria-pressed", String(state.isolate));
-  i.disabled = !has;
-  i.title = has ? (state.focus.unit ? `Mostra solo l'interno ${state.focus.unit}` : "Mostra solo il piano selezionato") : "Seleziona un piano o un appartamento";
-  i.textContent = has ? (state.focus.unit ? `Isolato · Int. ${state.focus.unit}` : `Isolato · ${floorCode(floors.find((f) => f.id === state.focus.floor))}`) : "Isolato";
-}
-document.querySelectorAll("#modes [data-mode]").forEach((b) =>
-  b.addEventListener("click", () => {
-    const iso = b.dataset.mode === "isolate";
-    if (iso && state.focus.floor === null) return;
-    if (iso === state.isolate) return;
-    state.isolate = iso;
-    engine?.setIsolate(iso);
-    updateModes();
-  }),
-);
-const range = document.getElementById("explode");
-range.addEventListener("input", () => {
-  state.explode = Number(range.value) / 100;
-  document.getElementById("explodeVal").textContent = `${range.value}%`;
-  document.getElementById("tickA").toggleAttribute("data-on", state.explode < 0.05);
-  document.getElementById("tickE").toggleAttribute("data-on", state.explode > 0.95);
-  engine?.setExplode(state.explode);
-});
 document.getElementById("recenter").addEventListener("click", () => engine?.reset());
 const hint = document.getElementById("hint");
 stageEl.addEventListener("pointerdown", () => hint.setAttribute("data-hidden", "true"));
@@ -1173,7 +1138,6 @@ document.getElementById("cartouche").innerHTML = `
 /* -------- start */
 buildOverlay();
 renderPanels();
-updateModes();
 renderTape();
 try {
   engine = new BuildingEngine(stageEl, overlayEl, B, {
@@ -1194,9 +1158,4 @@ updatePads();
 const fromHash = decodeURIComponent(location.hash.slice(1));
 if (fromHash && floorOfUnit(fromHash)) select({ floor: null, unit: fromHash });
 else if (fromHash && floors.some((f) => f.id === fromHash)) select({ floor: fromHash, unit: null });
-// …/3d/?isolato#21 opens the selection isolated
-if (new URLSearchParams(location.search).has("isolato") && state.focus.floor) {
-  state.isolate = true;
-  engine?.setIsolate(true);
-  updateModes();
-}
+

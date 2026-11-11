@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Piazza Beretta | Appartamento tipo</title>
+<meta name="description" content="Piazza Beretta, Corbetta: pianta arredata e tour 3D di un appartamento tipo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --navy: #001D4B; --gold: #96764A; --gold-l: #DB9421; --ink: #222; --mute: #777; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { font-family: "Montserrat", Helvetica, Arial, sans-serif; color: var(--ink); background: #fff; overflow: hidden; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+  .tp { display: grid; grid-template-columns: 340px 1fr; height: 100%; }
+  /* band */
+  .band { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; color: #fff; overflow: auto;
+    background: linear-gradient(180deg, #0a4478 0%, #063260 30%, #041c38 62%, #000812 100%); }
+  .band > * { flex-shrink: 0; }
+  .band .mono { width: 84px; height: 84px; margin-top: 58px; }
+  .band .stem { width: 1.5px; height: 56px; background: #c8902f; margin-top: 16px; }
+  .code { font-size: 30px; font-weight: 500; letter-spacing: .02em; margin-top: 96px; }
+  .rule { width: 205px; height: 2px; background: #fff; margin: 10px 0 12px; }
+  .typo { font-size: 18px; font-weight: 500; letter-spacing: .03em; text-transform: uppercase; }
+  .sub { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.62); margin-top: 12px; line-height: 1.6; padding: 0 26px; }
+  .kpis { display: flex; gap: 22px; margin-top: 26px; }
+  .kpis div { display: grid; gap: 2px; }
+  .kpis b { font-size: 22px; font-weight: 500; }
+  .kpis span { font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.6); }
+  .modes { display: grid; grid-template-columns: 1fr 1fr; width: 250px; margin-top: 30px; border: 1px solid rgba(255,255,255,.55); }
+  .modes button { padding: 10px 6px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.85); transition: .25s; }
+  .modes button + button { border-left: 1px solid rgba(255,255,255,.55); }
+  .modes button[aria-pressed="true"] { background: #fff; color: var(--navy); }
+  .acts { display: grid; gap: 8px; width: 250px; margin-top: 14px; }
+  .acts a { padding: 10px 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; border: 1px solid rgba(255,255,255,.35); }
+  .acts a.main { background: var(--gold); border-color: var(--gold); }
+  .acts a:hover { border-color: #fff; }
+  .foot { margin-top: auto; padding: 30px 0 34px; font-size: 12px; font-weight: 600; color: var(--gold-l); }
+  .note { font-size: 10px; line-height: 1.5; color: rgba(255,255,255,.45); margin-top: 18px; padding: 0 30px; }
+  /* main */
+  .main { position: relative; min-width: 0; background: #fff; }
+  .close { position: absolute; z-index: 10; top: 16px; right: 18px; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.9); box-shadow: 0 2px 10px rgba(0,0,0,.15); }
+  .close svg { width: 18px; height: 18px; stroke: #333; stroke-width: 1.6; fill: none; }
+  .view { position: absolute; inset: 0; }
+  #plan { display: grid; place-items: center; padding: 3.5% 4% 4%; }
+  #plan svg { width: 100%; height: 100%; }
+  #plan .room { fill: transparent; cursor: pointer; }
+  #plan .room:hover { fill: rgba(0, 29, 75, .07); }
+  .tip { position: absolute; z-index: 5; pointer-events: none; padding: 6px 10px; background: #fff; border-left: 2px solid var(--gold); box-shadow: 0 6px 20px rgba(0,0,0,.15); font-size: 12px; font-weight: 500; white-space: nowrap; display: none; }
+  .tip small { display: block; font-size: 10px; color: var(--mute); letter-spacing: .06em; }
+  .phint { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: #9a9a9a; pointer-events: none; }
+  /* tour */
+  #tour { display: none; background: #dfe7ee; }
+  #tour canvas { display: block; width: 100% !important; height: 100% !important; touch-action: none; cursor: grab; }
+  #tour canvas:active { cursor: grabbing; }
+  .here { position: absolute; top: 18px; left: 20px; padding: 8px 14px 9px; background: rgba(255,255,255,.92); border-left: 3px solid var(--gold); box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+  .here small { display: block; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--mute); }
+  .here b { font-size: 17px; font-weight: 500; }
+  .thint { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); padding: 6px 12px; border-radius: 999px; background: rgba(0,0,0,.45); color: #fff; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; pointer-events: none; transition: opacity .6s; }
+  .chips { position: absolute; left: 20px; right: 250px; bottom: 18px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button { padding: 7px 13px; border-radius: 999px; background: rgba(255,255,255,.92); box-shadow: 0 3px 12px rgba(0,0,0,.15); font-size: 11px; font-weight: 500; letter-spacing: .04em; }
+  .chips button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+  .mini { position: absolute; right: 18px; bottom: 18px; width: 210px; padding: 8px; background: rgba(255,255,255,.94); box-shadow: 0 6px 20px rgba(0,0,0,.18); cursor: crosshair; }
+  .mini svg { display: block; width: 100%; height: auto; }
+  .loading { position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8a97a3; pointer-events: none; }
+  body[data-mode="tour"] #plan { display: none; }
+  body[data-mode="tour"] #tour { display: block; }
+  /* card thumbnails */
+  body.thumb .band, body.thumb .close, body.thumb .phint { display: none; }
+  body.thumb .tp { grid-template-columns: 1fr; }
+  body.thumb #plan { padding: 3%; }
+  @media (max-width: 760px) {
+    body { overflow: auto; }
+    .tp { grid-template-columns: 1fr; grid-template-rows: auto minmax(70vh, 1fr); height: auto; min-height: 100%; }
+    .band { padding-bottom: 18px; }
+    .band .mono, .band .stem, .foot, .note { display: none; }
+    .code { margin-top: 18px; font-size: 24px; }
+    .rule { width: 150px; }
+    .main { min-height: 70vh; }
+    .chips { right: 18px; bottom: 150px; }
+    .mini { width: 140px; }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body data-mode="plan">
+<div class="tp">
+  <aside class="band" id="band"></aside>
+  <main class="main">
+    <section class="view" id="plan" aria-label="Pianta arredata"></section>
+    <section class="view" id="tour" aria-label="Tour 3D">
+      <div class="loading" id="loading">Preparazione del tour…</div>
+      <div class="here"><small>Sei in</small><b id="here"></b></div>
+      <p class="thint" id="thint">Trascina per guardarti intorno · clicca il pavimento per camminare</p>
+      <div class="chips" id="chips"></div>
+      <div class="mini" id="mini" title="Clicca per spostarti"></div>
+    </section>
+    <div class="tip" id="tip"></div>
+    <p class="phint" id="phint">Clicca una stanza per entrare nel tour 3D</p>
+    <a class="close" id="close" href="../#planimetrie" aria-label="Chiudi"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></a>
+  </main>
+</div>
+<script type="module" src="tipo.js"></script>
+</body>
+</html>

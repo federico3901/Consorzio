@@ -139,8 +139,8 @@ a{color:inherit;text-decoration:none}
 
 .card.tipo{padding-bottom:16px}
 .card .tipo-ph{height:175px}
-.tipo-ph{background:#030b18 !important;background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px) !important;background-size:12px 12px !important}
-.tipo-ph img{object-fit:contain !important;padding:10px;transition:transform .5s}
+.tipo-ph{background:#fff !important}
+.tipo-ph img{object-fit:contain !important;padding:6px;transition:transform .5s}
 .card.tipo:hover .tipo-ph img{transform:scale(1.06)}
 .card.tipo .lab{padding:18px 0 12px}
 .tipo-acts{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin:0 2px;border:1px solid rgba(181,143,84,.55)}
@@ -410,19 +410,19 @@ footer .cr{font-size:8.5px;letter-spacing:.06em;margin-top:12px;opacity:.85}
   <p class="lead reveal">Piazza Beretta offre un'ampia varietà di tagli e soluzioni abitative in grado di soddisfare ogni tipo di necessità.</p>
   <div class="cards reveal">
     <div class="card tipo" data-u="4">
-      <div class="ph tipo-ph"><img src="assets/tipi/tipo-4.svg" alt="Pianta dell'interno 4, bilocale"></div>
+      <div class="ph tipo-ph"><img src="assets/tipi/tipo-4.png" alt="Pianta dell'interno 4, bilocale"></div>
       <div class="lab">Bilocale<small>INT. 4 · 44 M² + LOGGIA</small></div>
-      <div class="tipo-acts"><button type="button" data-v="plan">Pianta</button><button type="button" data-v="interna">Vista interna</button></div>
+      <div class="tipo-acts"><button type="button" data-v="plan">Pianta</button><button type="button" data-v="tour">Tour 3D</button></div>
     </div>
     <div class="card tipo" data-u="25">
-      <div class="ph tipo-ph"><img src="assets/tipi/tipo-25.svg" alt="Pianta dell'interno 25, trilocale con cucina"></div>
+      <div class="ph tipo-ph"><img src="assets/tipi/tipo-25.png" alt="Pianta dell'interno 25, trilocale con cucina"></div>
       <div class="lab">Trilocale con cucina<small>INT. 25 · 93 M² + TERRAZZO</small></div>
-      <div class="tipo-acts"><button type="button" data-v="plan">Pianta</button><button type="button" data-v="interna">Vista interna</button></div>
+      <div class="tipo-acts"><button type="button" data-v="plan">Pianta</button><button type="button" data-v="tour">Tour 3D</button></div>
     </div>
     <div class="card tipo" data-u="21">
-      <div class="ph tipo-ph"><img src="assets/tipi/tipo-21.svg" alt="Pianta dell'interno 21, cinque locali"></div>
+      <div class="ph tipo-ph"><img src="assets/tipi/tipo-21.png" alt="Pianta dell'interno 21, cinque locali"></div>
       <div class="lab">Cinque locali<small>INT. 21 · 125 M² + BALCONI</small></div>
-      <div class="tipo-acts"><button type="button" data-v="plan">Pianta</button><button type="button" data-v="interna">Vista interna</button></div>
+      <div class="tipo-acts"><button type="button" data-v="plan">Pianta</button><button type="button" data-v="tour">Tour 3D</button></div>
     </div>
   </div>
   <h2 class="after reveal">Per avere informazioni su tutte le soluzioni abitative ancora disponibili, compila il form di richiesta informazioni.</h2>
@@ -585,7 +585,7 @@ document.querySelector('.carousel').addEventListener('mouseleave',()=>auto=setIn
 /* ===== PLANIMETRIE ===== */
 /* ===== APPARTAMENTI TIPO ===== */
 const tipoBox=document.getElementById('tipoBox'),tipoFrame=tipoBox.querySelector('iframe');
-function openTipo(u,v){tipoFrame.src=`3d/interno.html?u=${u}${v==='interna'?'&vista=interna':''}`;tipoBox.classList.add('open');document.body.style.overflow='hidden';setTimeout(()=>tipoFrame.focus(),300)}
+function openTipo(u,v){tipoFrame.src=`3d/tipo.html?u=${u}${v==='tour'?'&vista=tour':''}`;tipoBox.classList.add('open');document.body.style.overflow='hidden';setTimeout(()=>tipoFrame.focus(),300)}
 function closeTipo(){tipoBox.classList.remove('open');document.body.style.overflow='';tipoFrame.src='about:blank'}
 document.querySelectorAll('.card.tipo').forEach(c=>{
   c.addEventListener('click',e=>{const b=e.target.closest('[data-v]');openTipo(c.dataset.u,b?b.dataset.v:'plan')});
