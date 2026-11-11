@@ -28,19 +28,21 @@ const VIEWS = { axo: { az: 36, el: 30 }, plan: { az: 0, el: 89 }, front: { az: 0
 const THEME_KEY = "piazza-beretta.3d.tema";
 const NONE = { floor: null, unit: null };
 
-const GROUPS = ["day", "night", "bath", "serv", "dist", "out", "plant"];
+const GROUPS = ["day", "night", "bath", "serv", "park", "dist", "out", "plant"];
 const GROUP_OF = {
   living: "day", kitchen: "day", bedroom: "night", bathroom: "bath", storage: "serv", cellar: "serv",
   hall: "dist", landing: "dist", lobby: "dist", stairs: "dist", balcony: "out", terrace: "out", garden: "out", plant: "plant",
+  garage: "park", drive: "dist",
 };
 const OUTDOOR = new Set(["balcony", "terrace", "garden"]);
 const S = {
-  groups: { day: "Zona giorno", night: "Camere", bath: "Bagni", serv: "Ripostigli e cantine", dist: "Ingressi e scale", out: "Balconi e terrazzi", plant: "Impianti" },
+  groups: { day: "Zona giorno", night: "Camere", bath: "Bagni", serv: "Ripostigli e cantine", park: "Box auto", dist: "Ingressi, scale e corsie", out: "Balconi e terrazzi", plant: "Impianti" },
   kinds: {
     living: "Soggiorno", kitchen: "Cucina", bedroom: "Camera", bathroom: "Bagno", storage: "Ripostiglio", cellar: "Cantina",
-    hall: "Disimpegno", landing: "Pianerottolo", lobby: "Atrio", stairs: "Scala", balcony: "Balcone", terrace: "Terrazzo", garden: "Giardino", plant: "Impianti",
+    hall: "Disimpegno", landing: "Pianerottolo", lobby: "Atrio", stairs: "Scala", balcony: "Balcone", terrace: "Terrazzo", garden: "Giardino", plant: "Locale tecnico",
+    garage: "Box", drive: "Corsia di manovra",
   },
-  code: (level, roof) => (roof ? "CP" : level === 0 ? "PT" : `P${level}`),
+  code: (level, roof) => (roof ? "CP" : level === 0 ? "PT" : level < 0 ? "PI" : `P${level}`),
 };
 const TYPO = ["", "Monolocale", "Bilocale", "Trilocale", "Quadrilocale"];
 
@@ -176,8 +178,9 @@ class BuildingEngine {
     this.size = { w: 1, h: 1 };
     this.pads = { t: 0, r: 0, b: 0, l: 0 };
     this.pal = null;
-    this.explode = 0.6;
-    this.explodeNow = 0.6;
+    this.explode = 0;
+    this.explodeNow = 0;
+    this.isolate = false;
     this.focus = { ...NONE };
     this.hoverRoom = null;
     this.layers = { labels: true, dims: false, furniture: true };
@@ -196,6 +199,7 @@ class BuildingEngine {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setClearColor(0x000000, 0);
+    this.renderer.localClippingEnabled = true;
     this.renderer.domElement.className = "b3d-canvas";
     host.prepend(this.renderer.domElement);
 
@@ -263,7 +267,40 @@ class BuildingEngine {
   setFocus(f) {
     const changed = f.floor !== this.focus.floor || f.unit !== this.focus.unit;
     this.focus = { ...f };
+    this.applyClip();
     if (changed) this.frame(true, 0.7);
+  }
+  /** «Isolato»: only the selected floor is drawn, and of a selected apartment only its part of the floor. */
+  setIsolate(v) {
+    this.isolate = v;
+    this.applyClip();
+    this.frame(true, 0.7);
+  }
+  applyClip() {
+    for (const rt of this.floors) {
+      let planes = null;
+      const u = this.isolate && this.focus.unit && rt.f.id === this.focus.floor ? rt.f.units.find((x) => x.unitId === this.focus.unit) : null;
+      if (u) {
+        const m = 0.35;
+        const [x0, y0, x1, y1] = u.bounds;
+        const X0 = x0 - m - this.cx, X1 = x1 + m - this.cx;
+        const Z0 = -(y1 + m - this.cy), Z1 = -(y0 - m - this.cy);
+        planes = [
+          new THREE.Plane(new THREE.Vector3(1, 0, 0), -X0),
+          new THREE.Plane(new THREE.Vector3(-1, 0, 0), X1),
+          new THREE.Plane(new THREE.Vector3(0, 0, 1), -Z0),
+          new THREE.Plane(new THREE.Vector3(0, 0, -1), Z1),
+        ];
+      }
+      const key = planes ? `${this.focus.unit}` : "";
+      if (rt.clipKey === key) continue;
+      rt.clipKey = key;
+      const mats = [rt.fill, rt.depthMat, rt.edges, rt.hidden, rt.details, rt.railings, ...rt.tiles.map((t) => t.mat)];
+      for (const m of mats) {
+        m.clippingPlanes = planes;
+        m.needsUpdate = true;
+      }
+    }
   }
   setHover(id) {
     this.hoverRoom = id;
@@ -377,7 +414,8 @@ class BuildingEngine {
     const fillMesh = new THREE.Mesh(solid, fill);
     fillMesh.renderOrder = 1;
     fillMesh.raycast = () => {};
-    const depth = new THREE.Mesh(solid, this.depthMat);
+    const depthMat = this.depthMat.clone();
+    const depth = new THREE.Mesh(solid, depthMat);
     depth.renderOrder = 0;
     depth.raycast = () => {};
     group.add(depth, fillMesh);
@@ -439,7 +477,7 @@ class BuildingEngine {
       outlines.set(u.unitId, { line: line.mat, halo: halo.mat, show: 0 });
     }
 
-    return { f, group, fill, depth, edges: edges.mat, hidden: hidden.mat, details: details.mat, railings: railings.mat, detailsObj: details.obj, tiles, outlines, y: 0, dim: 0, lift: 0 };
+    return { f, group, fill, depth, depthMat, clipKey: "", edges: edges.mat, hidden: hidden.mat, details: details.mat, railings: railings.mat, detailsObj: details.obj, tiles, outlines, y: 0, dim: 0, lift: 0 };
   }
 
   buildDims() {
@@ -470,6 +508,7 @@ class BuildingEngine {
     return rt.f.level * (STOREY + GAP * explode) + lift;
   }
   targetLift(rt) {
+    if (this.isolate) return 0;
     const sel = this.floors.find((x) => x.f.id === this.focus.floor);
     return sel && rt.f.level > sel.f.level ? LIFT : 0;
   }
@@ -567,7 +606,7 @@ class BuildingEngine {
   }
   pick() {
     this.raycaster.setFromCamera(new THREE.Vector2(this.pointer.x, this.pointer.y), this.camera);
-    const meshes = this.floors.filter((rt) => rt.dim < 0.5).flatMap((rt) => rt.tiles.map((t) => t.mesh));
+    const meshes = this.floors.filter((rt) => rt.dim < 0.5 && rt.group.visible).flatMap((rt) => rt.tiles.map((t) => t.mesh));
     const hit = this.raycaster.intersectObjects(meshes, false)[0];
     return hit?.object.userData.roomId ?? null;
   }
@@ -589,6 +628,7 @@ class BuildingEngine {
       rt.lift = this.reduced ? this.targetLift(rt) : approach(rt.lift, this.targetLift(rt), dt, 7);
       rt.y = this.floorY(rt, this.explodeNow, rt.lift);
       rt.group.position.y = rt.y;
+      rt.group.visible = !(this.isolate && this.focus.floor && rt.f.id !== this.focus.floor);
       const d = rt.dim;
       rt.fill.opacity = THREE.MathUtils.lerp(pal.fillAlpha, pal.dimAlpha, d);
       rt.depth.visible = d < 0.5;
@@ -605,7 +645,8 @@ class BuildingEngine {
         setRGB(t.mat.color, pal.group[t.room.group]);
         if (t.emph > 0.001) t.mat.color.lerp(this.signal, t.emph * 0.75);
         const base = pal.tileAlpha * (t.room.outdoor ? 0.7 : 1);
-        t.mat.opacity = (base + t.hot * 0.22 + t.emph * 0.16) * (1 - 0.95 * d);
+        const away = this.isolate && selUnit && t.room.unitId !== selUnit ? 0.15 : 1;
+        t.mat.opacity = (base + t.hot * 0.22 + t.emph * 0.16) * (1 - 0.95 * d) * away;
       }
       for (const [unitId, o] of rt.outlines) {
         const showT = unitId === selUnit ? 1 : unitId === hoverUnit ? 0.55 : 0;
@@ -654,7 +695,7 @@ class BuildingEngine {
     const sel = this.focus;
     const roomById = new Map(this.floors.flatMap((rt) => rt.tiles.map((t) => [t.room.id, { rt, room: t.room }])));
 
-    const showLeaders = !narrow && this.explodeNow > 0.12 && !sel.unit;
+    const showLeaders = !narrow && !sel.unit;
     const anchors = this.floors.map((rt) => ({ rt, p: this.screen(this.world(this.b.x1 + 0.4, WALL_H * 0.5, this.cy, rt.y)) }));
     const colX = Math.min(Math.max(...anchors.map((a) => a.p.x)) + 44, w - this.pads.r - 190);
     const sorted = [...anchors].sort((a, b) => b.p.y - a.p.y);
@@ -664,7 +705,7 @@ class BuildingEngine {
       lastY = y;
       const el = this.els.leaders.get(a.rt.f.id);
       const ln = this.els.lines.get(a.rt.f.id);
-      const show = showLeaders && a.p.ok && a.rt.dim < 0.9;
+      const show = showLeaders && a.p.ok && a.rt.dim < 0.9 && a.rt.group.visible;
       this.place(el, show, colX, y);
       if (ln) {
         ln.style.visibility = show ? "visible" : "hidden";
@@ -689,7 +730,7 @@ class BuildingEngine {
       for (const u of rt.f.units) {
         const el = this.els.tags.get(`${rt.f.id}:${u.unitId}`);
         if (rt.f.roof || !el) continue;
-        const show = (sel.floor === rt.f.id && !sel.unit) || sel.unit === u.unitId || hoverUnit === u.unitId;
+        const show = rt.group.visible && ((sel.floor === rt.f.id && !sel.unit) || sel.unit === u.unitId || (hoverUnit === u.unitId && !(this.isolate && sel.unit)));
         const p = this.screen(this.world(u.anchor[0], WALL_H + 0.4, u.anchor[1], rt.y));
         this.place(el, show && p.ok && fits(el, p.x, p.y), p.x, p.y);
       }
@@ -748,8 +789,8 @@ function distSeg([x, y], [ax, ay], [bx, by]) {
 
 const state = {
   theme: "chiaro",
-  explode: 0.6,
-  view: "axo",
+  explode: 0,
+  isolate: false,
   focus: { ...NONE },
   hover: null,
   layers: { labels: true, dims: false, furniture: true },
@@ -771,7 +812,12 @@ function select(next) {
   }
   state.focus = next;
   state.sheet = next.floor !== null;
+  if (!next.floor && state.isolate) {
+    state.isolate = false;
+    engine?.setIsolate(false);
+  }
   engine?.setFocus(next);
+  updateModes();
   history.replaceState(null, "", next.unit ? `#${next.unit}` : next.floor ? `#${next.floor}` : location.pathname);
   renderPanels();
   updateOverlayState();
@@ -784,7 +830,7 @@ function buildOverlay() {
   parts.push(`<svg class="b3d-leader-svg" aria-hidden="true">${floors.map((f) => `<line data-leader-line="${f.id}"/>`).join("")}</svg>`);
   for (const f of floors) {
     parts.push(
-      `<button type="button" data-leader="${f.id}" class="b3d-lead"><span class="b3d-lead-code">${floorCode(f)}</span>${esc(f.name)}${f.roof ? "" : `<small>${f.units.length} app.</small>`}</button>`,
+      `<button type="button" data-leader="${f.id}" class="b3d-lead"><span class="b3d-lead-code">${floorCode(f)}</span>${esc(f.name)}${f.roof ? "" : f.level < 0 ? `<small>31 box</small>` : `<small>${f.units.length} app.</small>`}</button>`,
     );
   }
   for (const f of indoorFloors)
@@ -840,14 +886,14 @@ function renderLeft() {
         ${[...floors].reverse().map((f) => `
           <button type="button" class="b3d-frow" data-floor="${f.id}" ${state.focus.floor === f.id ? 'aria-current="true"' : ""}>
             <span class="b3d-code">${floorCode(f)}</span>
-            <span class="b3d-fname">${esc(f.name)}<small>${f.roof ? "Copertura piana" : f.units.map((u) => u.unitId).join(" · ")}</small></span>
-            <span class="b3d-fcount">${f.roof ? "—" : f.units.length}</span>
+            <span class="b3d-fname">${esc(f.name)}<small>${f.roof ? "Copertura piana" : f.level < 0 ? "Box 1–31 · cantine" : f.units.map((u) => u.unitId).join(" · ")}</small></span>
+            <span class="b3d-fcount">${f.roof || f.level < 0 ? "—" : f.units.length}</span>
           </button>`).join("")}
       </div>
     </section>
     <section class="b3d-sec">
       <h3 class="b3d-eyebrow">Legenda</h3>
-      <div class="b3d-key">${GROUPS.filter((g) => g !== "plant").map((g) => `<span style="--c: var(--k-${g})"><i></i>${S.groups[g]}</span>`).join("")}</div>
+      <div class="b3d-key">${GROUPS.map((g) => `<span style="--c: var(--k-${g})"><i></i>${S.groups[g]}</span>`).join("")}</div>
     </section>
     <section class="b3d-sec">
       <h3 class="b3d-eyebrow">Livelli</h3>
@@ -920,14 +966,33 @@ function renderRight() {
       pt: "Al piano terra: tre appartamenti, l'atrio d'ingresso, il deposito cantine (17 cantine) e il portico verso la piazza.",
       cp: "Copertura piana con parapetto perimetrale e volume dell'extracorsa ascensore (schematico).",
       p5: "Due attici con terrazzi su tre lati.",
+      pi: "Autorimessa interrata dalla tavola 03: 31 box (numerati 1–31), le cantine 18–28 e i locali tecnici attorno al vano scala, con accesso carraio dalla rampa verso via Alessandro Volta. I box doppi in tandem compaiono come un unico vano.",
     };
     body = `
       <div class="b3d-dhead">
         <button type="button" class="b3d-back" data-go="none">← Tutto l'edificio</button>
         <h2>${esc(f.name)}</h2>
-        <p class="b3d-meta">${floorCode(f)} · quota ${fmt(f.level * STOREY, 2, 2)} m</p>
+        <p class="b3d-meta">${floorCode(f)} · quota ${f.level < 0 ? "−" : ""}${fmt(Math.abs(f.level * STOREY), 2, 2)} m</p>
       </div>
-      ${f.roof ? `<p class="b3d-note b3d-pad">${notes.cp}</p>` : `
+      ${f.level < 0 ? `
+      <div class="b3d-kpis b3d-pad">
+        ${kpi("31", "Box auto")}
+        ${kpi("11", "Cantine")}
+        ${kpi(fmtArea(Math.round(f.rooms.filter((r) => r.kind === "drive").reduce((n, r) => n + r.area, 0))), "Corsia")}
+      </div>
+      <section class="b3d-sec">
+        <h3 class="b3d-eyebrow">Locali</h3>
+        <div class="b3d-bars">
+          ${["garage", "cellar", "plant", "drive"].map((k) => {
+            const rs = f.rooms.filter((r) => r.kind === k);
+            if (!rs.length) return "";
+            const tot = rs.reduce((n, r) => n + r.area, 0);
+            return `<div class="b3d-bar"><span class="b3d-blbl"><span>${S.kinds[k]}</span><span class="b3d-bval">${rs.length} ${rs.length === 1 ? "vano" : "vani"}</span></span>
+              <span class="b3d-track"><span style="width:${Math.min(100, (tot / 720) * 100)}%; background: var(--k-${GROUP_OF[k]})"></span></span><span class="b3d-pct">${fmtArea(Math.round(tot))}</span></div>`;
+          }).join("")}
+        </div>
+      </section>
+      <p class="b3d-note b3d-pad">${notes.pi}</p>` : f.roof ? `<p class="b3d-note b3d-pad">${notes.cp}</p>` : `
       <div class="b3d-kpis b3d-pad">
         ${kpi(String(f.units.length), "Appartamenti")}
         ${kpi(fmtArea(Math.round(f.units.reduce((n, u) => n + u.area, 0))), "Superficie netta")}
@@ -953,7 +1018,7 @@ function renderRight() {
         <p class="b3d-meta">Ambito ATU 5A · ex Consorzio Agrario · Corbetta (MI)</p>
       </div>
       <div class="b3d-kpis b3d-pad">
-        ${kpi(String(indoorFloors.length), "Piani")}
+        ${kpi(String(indoorFloors.filter((f) => f.level >= 0).length), "Piani f.t.")}
         ${kpi(String(units.length), "Appartamenti")}
         ${kpi("19,45", "m altezza")}
       </div>
@@ -1062,11 +1127,24 @@ try {
 applyTheme(saved === "scuro" || saved === "chiaro" ? saved : "chiaro", false);
 document.querySelectorAll("#themes [data-theme]").forEach((b) => b.addEventListener("click", () => applyTheme(b.dataset.theme, true)));
 
-document.querySelectorAll("#modes [data-view]").forEach((b) =>
+function updateModes() {
+  const has = state.focus.floor !== null;
+  const b = document.querySelector('#modes [data-mode="building"]');
+  const i = document.querySelector('#modes [data-mode="isolate"]');
+  b.setAttribute("aria-pressed", String(!state.isolate));
+  i.setAttribute("aria-pressed", String(state.isolate));
+  i.disabled = !has;
+  i.title = has ? (state.focus.unit ? `Mostra solo l'interno ${state.focus.unit}` : "Mostra solo il piano selezionato") : "Seleziona un piano o un appartamento";
+  i.textContent = has ? (state.focus.unit ? `Isolato · Int. ${state.focus.unit}` : `Isolato · ${floorCode(floors.find((f) => f.id === state.focus.floor))}`) : "Isolato";
+}
+document.querySelectorAll("#modes [data-mode]").forEach((b) =>
   b.addEventListener("click", () => {
-    state.view = b.dataset.view;
-    document.querySelectorAll("#modes [data-view]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-    engine?.setView(state.view);
+    const iso = b.dataset.mode === "isolate";
+    if (iso && state.focus.floor === null) return;
+    if (iso === state.isolate) return;
+    state.isolate = iso;
+    engine?.setIsolate(iso);
+    updateModes();
   }),
 );
 const range = document.getElementById("explode");
@@ -1088,12 +1166,13 @@ addEventListener("resize", updatePads);
 
 document.getElementById("cartouche").innerHTML = `
   <span><b>Piazza Beretta</b> · Corbetta (MI)</span>
-  <span>${indoorFloors.length} piani + CP · ${fmt(B.x1 - B.x0, 2, 2)} × ${fmt(B.y1 - B.y0, 2, 2)} m</span>
+  <span>PI + ${indoorFloors.filter((f) => f.level >= 0).length} piani + CP · ${fmt(B.x1 - B.x0, 2, 2)} × ${fmt(B.y1 - B.y0, 2, 2)} m</span>
   <em>Dalle piante di progetto · tav. 04</em>`;
 
 /* -------- start */
 buildOverlay();
 renderPanels();
+updateModes();
 renderTape();
 try {
   engine = new BuildingEngine(stageEl, overlayEl, B, {
@@ -1114,3 +1193,9 @@ updatePads();
 const fromHash = decodeURIComponent(location.hash.slice(1));
 if (fromHash && floorOfUnit(fromHash)) select({ floor: null, unit: fromHash });
 else if (fromHash && floors.some((f) => f.id === fromHash)) select({ floor: fromHash, unit: null });
+// …/3d/?isolato#21 opens the selection isolated
+if (new URLSearchParams(location.search).has("isolato") && state.focus.floor) {
+  state.isolate = true;
+  engine?.setIsolate(true);
+  updateModes();
+}

@@ -6,7 +6,9 @@ Landing page statica del progetto ATU 5A "Piazza Beretta" (Corbetta, MI).
 - `assets/` – render, piante e loghi estratti dalle tavole di progetto
 - `3d/` – vista 3D dell'edificio (Three.js da CDN, nessuna build): `index.html`, `app.js`, `style.css`
   e `building.json`, il modello ricavato dalle piante vettoriali (tav. 04, dic. 2025): muri, porte, finestre,
-  stanze per appartamento, balconi e arredi. Link diretti: `3d/#p3` (un piano), `3d/#21` (un appartamento).
+  stanze per appartamento, balconi e arredi. Comprende il piano interrato con box e cantine (tav. 03).
+  Link diretti: `3d/#p3` (un piano), `3d/#21` (un appartamento), `3d/#pi` (interrato); aggiungi `?isolato`
+  per aprirli isolati, es. `3d/?isolato#21`.
 
 ## Deploy
 Sito statico: Vercel lo pubblica così com'è, senza comandi di build.
