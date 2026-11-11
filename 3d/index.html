@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Piazza Beretta | Edificio 3D</title>
+<meta name="description" content="Piazza Beretta, Corbetta: l'edificio residenziale in 3D, piano per piano, generato dalle piante di progetto.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Saira+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; }
+  .b3d-facts { display: grid; gap: 0; }
+  .b3d-facts div { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 12px; }
+  .b3d-facts div:first-child { border-top: 0; }
+  .b3d-facts span { color: var(--mute); }
+  .b3d-facts b { font-family: var(--f-mono); font-weight: 500; font-size: 11.5px; }
+  .b3d-boot { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--mute); z-index: 1; pointer-events: none; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="app" class="b3d" data-tema="chiaro" data-narrow="false">
+  <header class="b3d-top">
+    <a href="../" class="b3d-brand" aria-label="Torna al sito: Piazza Beretta">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 2.5 21 7.5v9l-9 5-9-5v-9z"/><path d="M3 7.5 12 12.5l9-5M12 12.5v9"/></svg>
+      <b>Piazza Beretta</b>
+      <small>Edificio 3D</small>
+    </a>
+    <div class="b3d-modes" role="group" aria-label="Vista" id="modes">
+      <button type="button" data-view="axo" aria-pressed="true">3/4</button>
+      <button type="button" data-view="plan" aria-pressed="false">Pianta</button>
+      <button type="button" data-view="front" aria-pressed="false">Fronte</button>
+    </div>
+    <span class="b3d-spacer"></span>
+    <div class="b3d-seg" role="group" aria-label="Tema" id="themes">
+      <button type="button" data-theme="scuro" title="Silhouette"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg><span class="b3d-sr">Silhouette</span></button>
+      <button type="button" data-theme="chiaro" title="Gesso"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg><span class="b3d-sr">Gesso</span></button>
+    </div>
+    <a href="../" class="b3d-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span class="b3d-bl">Progetto</span></a>
+  </header>
+
+  <div class="b3d-stage" id="stage" role="img" aria-label="Piazza Beretta, edificio 3D. Trascina per ruotare, rotella o pizzico per lo zoom, tocca un appartamento.">
+    <div class="b3d-boot" id="boot">Caricamento del modello…</div>
+    <div class="b3d-cartouche" aria-hidden="true" id="cartouche"></div>
+    <div class="b3d-overlay" id="overlay"></div>
+    <p class="b3d-hint" id="hint">Trascina per ruotare · rotella o pizzico per lo zoom · tocca un appartamento</p>
+  </div>
+
+  <aside class="b3d-panel b3d-left" aria-label="Piani" id="left"></aside>
+  <nav class="b3d-strip" aria-label="Piani" id="strip"></nav>
+  <aside class="b3d-panel b3d-right" data-open="false" aria-label="Edificio" id="right"></aside>
+
+  <div class="b3d-console">
+    <div class="b3d-slider">
+      <span class="b3d-tick" id="tickA">Assemblato</span>
+      <span class="b3d-trackwrap"><input id="explode" type="range" min="0" max="100" value="60" aria-label="Esploso" class="b3d-range"></span>
+      <span class="b3d-tick" id="tickE">Esploso</span>
+      <span class="b3d-value" id="explodeVal">60%</span>
+    </div>
+    <button type="button" class="b3d-btn" id="recenter" title="Centra"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="b3d-bl">Centra</span></button>
+  </div>
+
+  <div class="b3d-tape" aria-label="Appartamenti">
+    <span class="b3d-tape-tag">APPARTAMENTI</span>
+    <span class="b3d-tape-win"><span class="b3d-tape-track" id="tape"></span></span>
+  </div>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

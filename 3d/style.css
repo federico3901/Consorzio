@@ -1,0 +1,1206 @@
+/* 3D building view in the style of the «Atlante delle Forniture»: a drafting-paper stage at full bleed, console panels
+   floating on its edges, Saira Condensed for names, IBM Plex for text and figures. Two looks: «Silhouette» (dark, the
+   tokens below) and «Gesso» (light) under [data-tema="chiaro"]. Every colour is a token; the WebGL scene reads the
+   --o-* and --k-* ones (palette.ts). Every class is prefixed b3d-. */
+
+.b3d {
+  color-scheme: dark;
+  --void: #000;
+  --ground: 0, 0, 0;
+  --tint: 255, 255, 255;
+  --panel: rgba(0, 0, 0, 0.84);
+  --panel-solid: #050505;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.18);
+  --ink: #e6e6e6;
+  --mute: #8c8c8c;
+  --faint: #5a5a5a;
+  --signal: #53e2cf;
+  --on-signal: #000;
+  --signal-veil: color-mix(in srgb, var(--signal) 14%, transparent);
+  --label-bg: rgba(4, 4, 4, 0.82);
+  --label-ink: #eef4f7;
+  --chip-halo: rgba(4, 4, 4, 0.35);
+  --shadow: rgba(0, 0, 0, 0.55);
+  --vignette: rgba(0, 0, 0, 0.55);
+  --knob-off: var(--mute);
+  --panel-filter: blur(14px) saturate(1.2);
+  --panel-radius: 6px;
+  --r-low: #5fd38d;
+  --r-high: #ff9a3d;
+  /* stage and WebGL */
+  --o-dark: 1;
+  --o-bg: #000;
+  --o-grid: rgba(255, 255, 255, 0.06);
+  --o-edge: rgba(255, 255, 255, 0.6);
+  --o-fill-alpha: 0.1;
+  --o-tile-alpha: 0.2;
+  --o-dim-alpha: 0.025;
+  --o-glow: 0.45;
+  /* room groups */
+  --k-day: #ffb547;
+  --k-night: #9fb6ff;
+  --k-bath: #4fb8ff;
+  --k-serv: #d9cdb4;
+  --k-dist: #9a9a9a;
+  --k-out: #5fd38d;
+  --k-plant: #e8d25a;
+  --f-display: "Saira Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --top-h: 52px;
+  --tape-h: 30px;
+  --left-w: 248px;
+  --right-w: 368px;
+
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--void);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.b3d[data-tema="chiaro"] {
+  color-scheme: light;
+  --void: #e3e8e8;
+  --ground: 227, 232, 232;
+  --tint: 14, 38, 40;
+  --panel: rgba(251, 252, 252, 0.93);
+  --panel-solid: #fbfcfc;
+  --line: rgba(14, 38, 40, 0.12);
+  --line-strong: rgba(14, 38, 40, 0.22);
+  --ink: #111718;
+  --mute: #4f5a5c;
+  --faint: #7b8688;
+  --signal: #066d64;
+  --on-signal: #fff;
+  --label-bg: rgba(255, 255, 255, 0.95);
+  --label-ink: #111718;
+  --chip-halo: rgba(255, 255, 255, 0.95);
+  --shadow: rgba(14, 38, 40, 0.16);
+  --vignette: rgba(227, 232, 232, 0.4);
+  --knob-off: #aab3b4;
+  --r-low: #1d7a3e;
+  --r-high: #9f600f;
+  --o-dark: 0;
+  --o-bg: #e3e8e8;
+  --o-grid: rgba(14, 38, 40, 0.08);
+  --o-edge: rgba(14, 38, 40, 0.7);
+  --o-fill-alpha: 0.12;
+  --o-tile-alpha: 0.2;
+  --o-dim-alpha: 0.03;
+  --o-glow: 0;
+  --k-day: #9f600f;
+  --k-night: #3149b0;
+  --k-bath: #1f5f9e;
+  --k-serv: #6b5a3a;
+  --k-dist: #5d686a;
+  --k-out: #1d7a3e;
+  --k-plant: #625a00;
+}
+
+:where(.b3d) button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+}
+:where(.b3d) a {
+  color: inherit;
+  text-decoration: none;
+}
+.b3d :focus-visible {
+  outline: 1px solid var(--signal);
+  outline-offset: 2px;
+}
+.b3d-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.b3d-eyebrow {
+  margin: 0;
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+
+/* Stage: drafting paper with a two-step grid and a vignette */
+.b3d-stage {
+  --grid-minor: color-mix(in srgb, var(--o-grid) 42%, transparent);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-color: var(--o-bg);
+  background-image:
+    radial-gradient(ellipse at 50% 50%, transparent 58%, var(--vignette) 100%),
+    linear-gradient(var(--o-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--o-grid) 1px, transparent 1px),
+    linear-gradient(var(--grid-minor) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-minor) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    96px 96px,
+    96px 96px,
+    24px 24px,
+    24px 24px;
+  background-position: center;
+  touch-action: none;
+}
+.b3d-canvas {
+  position: absolute !important;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+.b3d-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.b3d-overlay > * {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+}
+.b3d-leader-svg {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  visibility: visible !important;
+}
+.b3d-leader-svg line {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+  visibility: hidden;
+}
+.b3d-leader-svg line[data-current="true"] {
+  stroke: var(--signal);
+}
+
+/* Title block of the drawing */
+.b3d-cartouche {
+  position: absolute;
+  z-index: 3;
+  top: calc(var(--top-h) + 14px);
+  left: calc(var(--left-w) + 40px);
+  display: grid;
+  gap: 4px;
+  padding: 1px 0 1px 10px;
+  border-left: 1px solid var(--line-strong);
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mute);
+  pointer-events: none;
+  max-width: calc(100% - var(--left-w) - var(--right-w) - 80px);
+}
+.b3d-cartouche > * {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.b3d-cartouche b {
+  color: var(--ink);
+  font-weight: 500;
+}
+.b3d-cartouche em {
+  font-style: normal;
+  color: var(--r-high);
+}
+.b3d-hint {
+  position: absolute;
+  z-index: 3;
+  margin: 0;
+  bottom: calc(var(--tape-h) + 74px);
+  transition: opacity 0.6s;
+  left: calc(var(--left-w) + 24px + (100% - var(--left-w) - var(--right-w) - 48px) / 2);
+  transform: translateX(-50%);
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.b3d-hint[data-hidden="true"] {
+  opacity: 0;
+}
+.b3d-failed {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+  color: var(--mute);
+}
+
+/* Labels placed by the engine */
+.b3d-lead {
+  translate: 0 -50%;
+  pointer-events: auto;
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 9px 3px 4px !important;
+  border-radius: 3px;
+  background: var(--label-bg) !important;
+  color: var(--label-ink) !important;
+  border-left: 2px solid var(--line-strong) !important;
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 4px 18px var(--shadow);
+  transition: color 0.2s;
+}
+.b3d-lead small {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--f-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+.b3d-lead-code {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  font-weight: 500;
+  min-width: 22px;
+  text-align: center;
+  padding: 1px 3px;
+  border-radius: 2px;
+  background: rgba(var(--tint), 0.08);
+}
+.b3d-lead:hover,
+.b3d-lead[data-current="true"] {
+  color: var(--signal) !important;
+  border-left-color: var(--signal) !important;
+}
+.b3d-tag {
+  translate: -50% -50%;
+  pointer-events: auto;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px 2px 6px !important;
+  border-radius: 3px;
+  background: var(--label-bg) !important;
+  color: var(--label-ink) !important;
+  font-family: var(--f-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--line-strong) !important;
+  box-shadow: 0 0 0 3px var(--chip-halo);
+}
+.b3d-tag:hover,
+.b3d-tag[data-current="true"] {
+  border-color: var(--signal) !important;
+  color: var(--signal) !important;
+}
+.b3d-room {
+  translate: -50% -50%;
+  display: grid;
+  justify-items: center;
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--label-ink);
+  text-align: center;
+  white-space: nowrap;
+  text-shadow:
+    0 0 3px var(--o-bg),
+    0 0 6px var(--o-bg);
+}
+.b3d-room small {
+  font-family: var(--f-mono);
+  font-size: 9.5px;
+  color: var(--c);
+  letter-spacing: 0.04em;
+}
+.b3d-chip {
+  translate: -50% calc(-100% - 12px);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--label-ink);
+  background: var(--label-bg);
+  padding: 3px 8px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+  border-left: 2px solid var(--c, var(--signal));
+  box-shadow: 0 4px 18px var(--shadow);
+}
+.b3d-chip small {
+  display: block;
+  font-family: var(--f-mono);
+  font-weight: 400;
+  font-size: 8.5px;
+  color: var(--mute);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.b3d-target {
+  --b: color-mix(in srgb, var(--signal) 85%, transparent);
+  background:
+    linear-gradient(var(--b), var(--b)) top left / 14px 1px no-repeat,
+    linear-gradient(var(--b), var(--b)) top left / 1px 14px no-repeat,
+    linear-gradient(var(--b), var(--b)) top right / 14px 1px no-repeat,
+    linear-gradient(var(--b), var(--b)) top right / 1px 14px no-repeat,
+    linear-gradient(var(--b), var(--b)) bottom left / 14px 1px no-repeat,
+    linear-gradient(var(--b), var(--b)) bottom left / 1px 14px no-repeat,
+    linear-gradient(var(--b), var(--b)) bottom right / 14px 1px no-repeat,
+    linear-gradient(var(--b), var(--b)) bottom right / 1px 14px no-repeat;
+}
+.b3d-dim,
+.b3d-street {
+  translate: -50% -50%;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--mute);
+  white-space: nowrap;
+}
+.b3d-dim {
+  background: color-mix(in srgb, var(--o-bg) 88%, transparent);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+.b3d-street {
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  color: var(--faint);
+}
+
+/* Top bar */
+.b3d-top {
+  position: absolute;
+  z-index: 20;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--top-h);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: linear-gradient(to bottom, rgba(var(--ground), 0.92), rgba(var(--ground), 0.55));
+  border-bottom: 1px solid var(--line);
+}
+.b3d-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.b3d-brand svg {
+  flex: none;
+  color: var(--signal);
+}
+.b3d-brand b {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.b3d-brand small {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  color: var(--signal);
+  border: 1px solid color-mix(in srgb, var(--signal) 40%, transparent);
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.b3d-modes,
+.b3d-seg {
+  display: flex;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  overflow: hidden;
+  flex: none;
+}
+.b3d-modes button {
+  padding: 6px 14px !important;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mute) !important;
+}
+.b3d-seg > * {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  padding: 5px 8px !important;
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--mute) !important;
+}
+.b3d-seg svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.b3d-modes button[aria-pressed="true"],
+.b3d-seg > [aria-pressed="true"],
+.b3d-seg > [aria-current="true"] {
+  background: var(--signal-veil) !important;
+  color: var(--signal) !important;
+}
+.b3d-spacer {
+  flex: 1;
+}
+.b3d-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: 4px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.b3d-btn:hover {
+  border-color: var(--signal) !important;
+  color: var(--signal) !important;
+}
+.b3d-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Panels */
+.b3d-panel {
+  position: absolute;
+  z-index: 10;
+  top: calc(var(--top-h) + 12px);
+  bottom: calc(var(--tape-h) + 12px);
+  color: var(--ink);
+  background: var(--panel);
+  backdrop-filter: var(--panel-filter);
+  -webkit-backdrop-filter: var(--panel-filter);
+  border: 1px solid var(--line);
+  border-radius: var(--panel-radius);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+.b3d-left {
+  left: max(12px, env(safe-area-inset-left, 0px));
+  width: var(--left-w);
+}
+.b3d-right {
+  right: max(12px, env(safe-area-inset-right, 0px));
+  width: var(--right-w);
+}
+.b3d-sec {
+  padding: 14px 14px 16px;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 10px;
+}
+.b3d-sec:last-child {
+  border-bottom: 0;
+}
+.b3d-pad {
+  padding: 12px 16px;
+}
+.b3d-flist {
+  display: grid;
+  gap: 2px;
+}
+.b3d-frow {
+  display: grid !important;
+  grid-template-columns: 34px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px !important;
+  border-radius: 3px;
+  text-align: left;
+}
+.b3d-frow:hover {
+  background: rgba(var(--tint), 0.04) !important;
+}
+.b3d-frow[aria-current="true"] {
+  background: color-mix(in srgb, var(--signal) 12%, transparent) !important;
+}
+.b3d-frow[aria-current="true"] .b3d-code {
+  color: var(--signal);
+}
+.b3d-code {
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  color: var(--mute);
+}
+.b3d-fname {
+  font-size: 12.5px;
+  min-width: 0;
+}
+.b3d-fname small {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: 9.5px;
+  color: var(--faint);
+  letter-spacing: 0.04em;
+}
+.b3d-fcount {
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  color: var(--faint);
+}
+.b3d-key {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+}
+.b3d-key span {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.b3d-key i {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: none;
+  border: 1px solid var(--c);
+  background: color-mix(in srgb, var(--c) 30%, transparent);
+}
+.b3d-layer {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 5px 4px !important;
+  border-radius: 3px;
+  font-size: 12.5px;
+  text-align: left;
+}
+.b3d-layer:hover {
+  background: rgba(var(--tint), 0.04) !important;
+}
+.b3d-switch {
+  width: 28px;
+  height: 16px;
+  border-radius: 8px;
+  background: rgba(var(--tint), 0.1);
+  position: relative;
+  transition: background 0.2s;
+}
+.b3d-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--knob-off);
+  transition:
+    transform 0.2s,
+    background 0.2s;
+}
+.b3d-layer[aria-pressed="true"] .b3d-switch {
+  background: color-mix(in srgb, var(--signal) 40%, transparent);
+}
+.b3d-layer[aria-pressed="true"] .b3d-switch::after {
+  transform: translateX(12px);
+  background: var(--signal);
+}
+
+/* Dossier */
+.b3d-handle {
+  display: none !important;
+}
+.b3d-dhead {
+  padding: 16px 16px 14px;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 6px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--panel-solid);
+}
+.b3d-dhead h2 {
+  margin: 0;
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.b3d-meta {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--mute);
+  line-height: 1.45;
+}
+.b3d-back {
+  justify-self: start;
+  font-family: var(--f-mono);
+  font-size: 10px !important;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mute) !important;
+}
+.b3d-back:hover {
+  color: var(--signal) !important;
+}
+.b3d-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+}
+.b3d-kpis > .b3d-kpi:first-child {
+  border-radius: 4px 0 0 4px;
+}
+.b3d-kpi {
+  background: rgba(var(--tint), 0.04);
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.b3d-kpi b {
+  font-family: var(--f-display);
+  font-weight: 600;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.b3d-kpi span {
+  font-family: var(--f-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+.b3d-rows {
+  display: grid;
+}
+.b3d-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 16px !important;
+  border-top: 1px solid var(--line) !important;
+  text-align: left;
+  width: 100%;
+}
+.b3d-row:hover {
+  background: rgba(var(--tint), 0.04) !important;
+}
+.b3d-rn {
+  font-family: var(--f-display);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  min-width: 0;
+}
+.b3d-rn small {
+  display: block;
+  font-family: var(--f-mono);
+  font-weight: 400;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+.b3d-rs {
+  font-family: var(--f-mono);
+  font-size: 11.5px;
+  color: var(--ink);
+}
+.b3d-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--f-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.b3d-pill::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.us-available {
+  color: var(--r-low);
+}
+.us-reserved {
+  color: var(--r-high);
+}
+.us-sold {
+  color: var(--faint);
+}
+.b3d-pip {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.b3d-pip.st-construction {
+  color: var(--signal);
+}
+.b3d-pip.st-completed,
+.b3d-pip.st-planning {
+  color: var(--mute);
+}
+.b3d-bars {
+  display: grid;
+  gap: 8px;
+}
+.b3d-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px;
+  grid-template-areas: "lbl pct" "track pct";
+  column-gap: 10px;
+  row-gap: 3px;
+  align-items: center;
+  font-size: 12px;
+}
+.b3d-blbl {
+  grid-area: lbl;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.b3d-blbl > span:first-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.b3d-bval {
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  color: var(--faint);
+  white-space: nowrap;
+}
+.b3d-track {
+  grid-area: track;
+  height: 4px;
+  background: rgba(var(--tint), 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.b3d-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
+.b3d-pct {
+  grid-area: pct;
+  font-family: var(--f-mono);
+  font-size: 11.5px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+a.b3d-bar:hover .b3d-blbl > span:first-child {
+  color: var(--signal);
+}
+.b3d-note {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--mute);
+  line-height: 1.5;
+}
+.b3d-note b {
+  color: var(--ink);
+  font-weight: 500;
+}
+.b3d-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.b3d-act {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.b3d-act:hover {
+  color: var(--signal);
+  border-color: color-mix(in srgb, var(--signal) 55%, transparent);
+}
+.b3d-act-main {
+  background: var(--signal);
+  border-color: var(--signal);
+  color: var(--on-signal);
+}
+.b3d-act-main:hover {
+  color: var(--on-signal);
+  background: color-mix(in srgb, var(--signal) 85%, var(--ink));
+}
+
+/* Console: explode slider */
+.b3d-console {
+  position: absolute;
+  z-index: 12;
+  bottom: calc(var(--tape-h) + 14px);
+  left: calc(var(--left-w) + 24px + (100% - var(--left-w) - var(--right-w) - 48px) / 2);
+  transform: translateX(-50%);
+  width: min(560px, calc(100% - var(--left-w) - var(--right-w) - 72px));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 12px;
+  color: var(--ink);
+  background: var(--panel);
+  backdrop-filter: var(--panel-filter);
+  -webkit-backdrop-filter: var(--panel-filter);
+  border: 1px solid var(--line);
+  border-radius: var(--panel-radius);
+}
+.b3d-slider {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(60px, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+}
+.b3d-tick {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mute);
+  white-space: nowrap;
+}
+.b3d-tick[data-on="true"] {
+  color: var(--ink);
+}
+.b3d-value {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--signal);
+  min-width: 34px;
+  text-align: right;
+}
+.b3d-trackwrap {
+  position: relative;
+  height: 22px;
+  display: flex;
+  align-items: center;
+}
+.b3d-trackwrap::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 15px;
+  height: 3px;
+  background-image: linear-gradient(90deg, var(--line-strong) 1px, transparent 1px);
+  background-size: 25% 100%;
+  border-right: 1px solid var(--line-strong);
+  pointer-events: none;
+}
+.b3d-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 22px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.b3d-range::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--line-strong);
+}
+.b3d-range::-moz-range-track {
+  height: 2px;
+  background: var(--line-strong);
+}
+.b3d-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -5px;
+  border-radius: 2px;
+  background: var(--signal);
+  box-shadow: 0 0 0 3px var(--signal-veil);
+}
+.b3d-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 2px;
+  background: var(--signal);
+}
+
+/* Availability tape */
+.b3d-tape {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--tape-h);
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--line);
+  background: rgba(var(--ground), 0.9);
+  overflow: hidden;
+}
+.b3d-tape-tag {
+  flex: none;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 12px 0 max(16px, env(safe-area-inset-left, 0px));
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--on-signal);
+  background: var(--signal);
+  font-weight: 500;
+}
+.b3d-tape-win {
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+}
+.b3d-tape-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: b3d-tape 90s linear infinite;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--mute);
+}
+.b3d-tape-track > span {
+  display: inline-flex;
+  gap: 30px;
+  padding-left: 30px;
+}
+.b3d-tape-track b {
+  color: var(--ink);
+  font-weight: 500;
+}
+.b3d-tape-track em {
+  font-style: normal;
+}
+.b3d-tape:hover .b3d-tape-track {
+  animation-play-state: paused;
+}
+@keyframes b3d-tape {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Floors strip (phones) */
+.b3d-strip {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  .b3d {
+    --left-w: 220px;
+    --right-w: 330px;
+  }
+  .b3d-brand small {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .b3d {
+    --top-h: 52px;
+    --left-w: 0px;
+    --right-w: 0px;
+  }
+  .b3d-left,
+  .b3d-tape,
+  .b3d-hint,
+  .b3d-bl {
+    display: none !important;
+  }
+  .b3d-brand b {
+    font-size: 17px;
+  }
+  .b3d-modes button {
+    padding: 6px 9px !important;
+  }
+  .b3d-top {
+    gap: 8px;
+  }
+  .b3d-strip {
+    position: absolute;
+    z-index: 15;
+    top: var(--top-h);
+    left: 0;
+    right: 0;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 8px max(12px, env(safe-area-inset-right, 0px)) 8px max(12px, env(safe-area-inset-left, 0px));
+    background: rgba(var(--ground), 0.7);
+    border-bottom: 1px solid var(--line);
+  }
+  .b3d-strip button {
+    flex: none;
+    padding: 5px 10px !important;
+    border: 1px solid var(--line-strong) !important;
+    border-radius: 999px;
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--mute) !important;
+  }
+  .b3d-strip button[aria-pressed="true"] {
+    color: var(--signal) !important;
+    border-color: var(--signal) !important;
+    background: var(--signal-veil) !important;
+  }
+  .b3d-cartouche {
+    top: calc(var(--top-h) + 58px);
+    left: max(14px, env(safe-area-inset-left, 0px));
+    max-width: calc(100% - 28px);
+  }
+  .b3d-right {
+    top: auto;
+    left: max(8px, env(safe-area-inset-left, 0px));
+    right: max(8px, env(safe-area-inset-right, 0px));
+    width: auto;
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    height: 46%;
+    transition: height 0.3s;
+  }
+  .b3d-right[data-open="false"] {
+    height: 0;
+    border-width: 0;
+  }
+  .b3d-handle {
+    display: block !important;
+    width: 100%;
+    height: 18px;
+    position: relative;
+  }
+  .b3d-handle::before {
+    content: "";
+    position: absolute;
+    left: calc(50% - 24px);
+    width: 48px;
+    top: 7px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--line-strong);
+  }
+  .b3d-dhead {
+    position: static;
+    padding-top: 4px;
+  }
+  .b3d-dhead h2 {
+    font-size: 28px;
+  }
+  .b3d-console {
+    left: 50%;
+    width: calc(100% - 16px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+    bottom: calc(max(8px, env(safe-area-inset-bottom, 0px)) + 4px);
+  }
+  .b3d[data-narrow="true"]:has(.b3d-right[data-open="true"]) .b3d-console {
+    bottom: calc(46% + 16px);
+  }
+}
+
+@media (max-width: 520px) {
+  .b3d-brand b {
+    display: none;
+  }
+  .b3d-modes button {
+    padding: 6px 7px !important;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+  .b3d-seg > * {
+    padding: 5px 5px !important;
+    min-width: 26px;
+  }
+  .b3d-tick {
+    display: none;
+  }
+  .b3d-slider {
+    grid-template-columns: minmax(60px, 1fr) auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .b3d-tape-track {
+    animation: none;
+  }
+  .b3d-right {
+    transition: none;
+  }
+}
