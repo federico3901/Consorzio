@@ -1,0 +1,377 @@
+{
+ "4": {
+  "title": "Appartamento tipo, bilocale",
+  "scenes": [
+   {
+    "id": "p1-r27",
+    "title": "Soggiorno con angolo cottura",
+    "image": "tour-4-p1-r27.jpg",
+    "thumb": "thumb-4-p1-r27.jpg",
+    "startX": 0.8057,
+    "hotspots": [
+     {
+      "target": "p1-r42",
+      "label": "Loggia",
+      "x": 0.8057,
+      "y": 0.5369
+     },
+     {
+      "target": "p1-r33",
+      "label": "Camera matrimoniale",
+      "x": 0.4226,
+      "y": 0.58
+     },
+     {
+      "target": "p1-r39",
+      "label": "Bagno",
+      "x": 0.4226,
+      "y": 0.58
+     }
+    ]
+   },
+   {
+    "id": "p1-r33",
+    "title": "Camera matrimoniale",
+    "image": "tour-4-p1-r33.jpg",
+    "thumb": "thumb-4-p1-r33.jpg",
+    "startX": 0.7358,
+    "hotspots": [
+     {
+      "target": "p1-r27",
+      "label": "Soggiorno con angolo cottura",
+      "x": 0.0032,
+      "y": 0.6346
+     },
+     {
+      "target": "p1-r39",
+      "label": "Bagno",
+      "x": 0.0032,
+      "y": 0.6346
+     }
+    ]
+   },
+   {
+    "id": "p1-r39",
+    "title": "Bagno",
+    "image": "tour-4-p1-r39.jpg",
+    "thumb": "thumb-4-p1-r39.jpg",
+    "startX": 0.8034,
+    "hotspots": [
+     {
+      "target": "p1-r27",
+      "label": "Soggiorno con angolo cottura",
+      "x": 0.2388,
+      "y": 0.5664
+     },
+     {
+      "target": "p1-r33",
+      "label": "Camera matrimoniale",
+      "x": 0.2388,
+      "y": 0.5664
+     }
+    ]
+   },
+   {
+    "id": "p1-r42",
+    "title": "Loggia",
+    "image": "tour-4-p1-r42.jpg",
+    "thumb": "thumb-4-p1-r42.jpg",
+    "startX": 0.1404,
+    "hotspots": [
+     {
+      "target": "p1-r27",
+      "label": "Soggiorno con angolo cottura",
+      "x": 0.1404,
+      "y": 0.6276
+     }
+    ]
+   }
+  ]
+ },
+ "21": {
+  "title": "Appartamento tipo, cinque locali",
+  "scenes": [
+   {
+    "id": "p4-r24",
+    "title": "Soggiorno con cucina",
+    "image": "tour-21-p4-r24.jpg",
+    "thumb": "thumb-21-p4-r24.jpg",
+    "startX": 0.87,
+    "hotspots": [
+     {
+      "target": "p4-r16",
+      "label": "Studio",
+      "x": 0.1107,
+      "y": 0.5245
+     },
+     {
+      "target": "p4-r37",
+      "label": "Camera matrimoniale",
+      "x": 0.013,
+      "y": 0.5298
+     },
+     {
+      "target": "p4-r43",
+      "label": "Balcone",
+      "x": 0.5966,
+      "y": 0.5491
+     },
+     {
+      "target": "p4-r36",
+      "label": "Camera doppia",
+      "x": 0.4913,
+      "y": 0.5326
+     },
+     {
+      "target": "p4-r40",
+      "label": "Camera singola",
+      "x": 0.4913,
+      "y": 0.5326
+     }
+    ]
+   },
+   {
+    "id": "p4-r36",
+    "title": "Camera doppia",
+    "image": "tour-21-p4-r36.jpg",
+    "thumb": "thumb-21-p4-r36.jpg",
+    "startX": 0.7178,
+    "hotspots": [
+     {
+      "target": "p4-r40",
+      "label": "Camera singola",
+      "x": 0.8672,
+      "y": 0.6118
+     },
+     {
+      "target": "p4-r24",
+      "label": "Soggiorno con cucina",
+      "x": 0.0642,
+      "y": 0.6741
+     }
+    ]
+   },
+   {
+    "id": "p4-r16",
+    "title": "Studio",
+    "image": "tour-21-p4-r16.jpg",
+    "thumb": "thumb-21-p4-r16.jpg",
+    "startX": 0.9925,
+    "hotspots": [
+     {
+      "target": "p4-r24",
+      "label": "Soggiorno con cucina",
+      "x": 0.6031,
+      "y": 0.5365
+     },
+     {
+      "target": "p4-r31",
+      "label": "Bagno",
+      "x": 0.6654,
+      "y": 0.5488
+     },
+     {
+      "target": "p4-r37",
+      "label": "Camera matrimoniale",
+      "x": 0.6615,
+      "y": 0.5355
+     }
+    ]
+   },
+   {
+    "id": "p4-r37",
+    "title": "Camera matrimoniale",
+    "image": "tour-21-p4-r37.jpg",
+    "thumb": "thumb-21-p4-r37.jpg",
+    "startX": 0.92,
+    "hotspots": [
+     {
+      "target": "p4-r16",
+      "label": "Studio",
+      "x": 0.4132,
+      "y": 0.5464
+     },
+     {
+      "target": "p4-r31",
+      "label": "Bagno",
+      "x": 0.327,
+      "y": 0.6028
+     },
+     {
+      "target": "p4-r24",
+      "label": "Soggiorno con cucina",
+      "x": 0.5335,
+      "y": 0.5419
+     }
+    ]
+   },
+   {
+    "id": "p4-r40",
+    "title": "Camera singola",
+    "image": "tour-21-p4-r40.jpg",
+    "thumb": "thumb-21-p4-r40.jpg",
+    "startX": 0.6556,
+    "hotspots": [
+     {
+      "target": "p4-r36",
+      "label": "Camera doppia",
+      "x": 0.3582,
+      "y": 0.5412
+     },
+     {
+      "target": "p4-r24",
+      "label": "Soggiorno con cucina",
+      "x": 0.2786,
+      "y": 0.5407
+     }
+    ]
+   },
+   {
+    "id": "p4-r31",
+    "title": "Bagno",
+    "image": "tour-21-p4-r31.jpg",
+    "thumb": "thumb-21-p4-r31.jpg",
+    "startX": 0.9694,
+    "hotspots": [
+     {
+      "target": "p4-r16",
+      "label": "Studio",
+      "x": 0.4647,
+      "y": 0.5634
+     },
+     {
+      "target": "p4-r37",
+      "label": "Camera matrimoniale",
+      "x": 0.6235,
+      "y": 0.6181
+     }
+    ]
+   },
+   {
+    "id": "p4-r43",
+    "title": "Balcone",
+    "image": "tour-21-p4-r43.jpg",
+    "thumb": "thumb-21-p4-r43.jpg",
+    "startX": 0.0591,
+    "hotspots": [
+     {
+      "target": "p4-r24",
+      "label": "Soggiorno con cucina",
+      "x": 0.0591,
+      "y": 0.5683
+     }
+    ]
+   }
+  ]
+ },
+ "25": {
+  "title": "Appartamento tipo, trilocale con cucina",
+  "scenes": [
+   {
+    "id": "p4-r27",
+    "title": "Soggiorno con cucina",
+    "image": "tour-25-p4-r27.jpg",
+    "thumb": "thumb-25-p4-r27.jpg",
+    "startX": 0.884,
+    "hotspots": [
+     {
+      "target": "p4-r38",
+      "label": "Camera doppia",
+      "x": 0.5376,
+      "y": 0.5288
+     },
+     {
+      "target": "p4-r44",
+      "label": "Terrazzo",
+      "x": 0.884,
+      "y": 0.5328
+     },
+     {
+      "target": "p4-r23",
+      "label": "Camera singola",
+      "x": 0.4468,
+      "y": 0.5295
+     }
+    ]
+   },
+   {
+    "id": "p4-r38",
+    "title": "Camera doppia",
+    "image": "tour-25-p4-r38.jpg",
+    "thumb": "thumb-25-p4-r38.jpg",
+    "startX": 0.5153,
+    "hotspots": [
+     {
+      "target": "p4-r23",
+      "label": "Camera singola",
+      "x": 0.295,
+      "y": 0.6029
+     },
+     {
+      "target": "p4-r27",
+      "label": "Soggiorno con cucina",
+      "x": 0.9727,
+      "y": 0.5669
+     }
+    ]
+   },
+   {
+    "id": "p4-r23",
+    "title": "Camera singola",
+    "image": "tour-25-p4-r23.jpg",
+    "thumb": "thumb-25-p4-r23.jpg",
+    "startX": 0.4937,
+    "hotspots": [
+     {
+      "target": "p4-r18",
+      "label": "Bagno",
+      "x": 0.3373,
+      "y": 0.5655
+     },
+     {
+      "target": "p4-r38",
+      "label": "Camera doppia",
+      "x": 0.6811,
+      "y": 0.5868
+     },
+     {
+      "target": "p4-r27",
+      "label": "Soggiorno con cucina",
+      "x": 0.1329,
+      "y": 0.6433
+     }
+    ]
+   },
+   {
+    "id": "p4-r18",
+    "title": "Bagno",
+    "image": "tour-25-p4-r18.jpg",
+    "thumb": "thumb-25-p4-r18.jpg",
+    "startX": 0.4352,
+    "hotspots": [
+     {
+      "target": "p4-r23",
+      "label": "Camera singola",
+      "x": 0.7878,
+      "y": 0.8037
+     }
+    ]
+   },
+   {
+    "id": "p4-r44",
+    "title": "Terrazzo",
+    "image": "tour-25-p4-r44.jpg",
+    "thumb": "thumb-25-p4-r44.jpg",
+    "startX": 0.3417,
+    "hotspots": [
+     {
+      "target": "p4-r27",
+      "label": "Soggiorno con cucina",
+      "x": 0.3417,
+      "y": 0.6148
+     }
+    ]
+   }
+  ]
+ }
+}

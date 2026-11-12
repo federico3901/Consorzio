@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Piazza Beretta | Appartamento tipo</title>
-<meta name="description" content="Piazza Beretta, Corbetta: pianta arredata e tour 3D di un appartamento tipo.">
+<meta name="description" content="Piazza Beretta, Corbetta: pianta arredata e tour 360° di un appartamento tipo.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root { --navy: #001D4B; --gold: #96764A; --gold-l: #DB9421; --ink: #222; --mute: #777; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -52,20 +52,35 @@
   .tip { position: absolute; z-index: 5; pointer-events: none; padding: 6px 10px; background: #fff; border-left: 2px solid var(--gold); box-shadow: 0 6px 20px rgba(0,0,0,.15); font-size: 12px; font-weight: 500; white-space: nowrap; display: none; }
   .tip small { display: block; font-size: 10px; color: var(--mute); letter-spacing: .06em; }
   .phint { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: #9a9a9a; pointer-events: none; }
-  /* tour */
-  #tour { display: none; background: #dfe7ee; }
-  #tour canvas { display: block; width: 100% !important; height: 100% !important; touch-action: none; cursor: grab; }
-  #tour canvas:active { cursor: grabbing; }
-  .here { position: absolute; top: 18px; left: 20px; padding: 8px 14px 9px; background: rgba(255,255,255,.92); border-left: 3px solid var(--gold); box-shadow: 0 6px 20px rgba(0,0,0,.18); }
-  .here small { display: block; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--mute); }
-  .here b { font-size: 17px; font-weight: 500; }
-  .thint { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); padding: 6px 12px; border-radius: 999px; background: rgba(0,0,0,.45); color: #fff; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; pointer-events: none; transition: opacity .6s; }
-  .chips { position: absolute; left: 20px; right: 250px; bottom: 18px; display: flex; flex-wrap: wrap; gap: 6px; }
-  .chips button { padding: 7px 13px; border-radius: 999px; background: rgba(255,255,255,.92); box-shadow: 0 3px 12px rgba(0,0,0,.15); font-size: 11px; font-weight: 500; letter-spacing: .04em; }
-  .chips button[aria-pressed="true"] { background: var(--navy); color: #fff; }
-  .mini { position: absolute; right: 18px; bottom: 18px; width: 210px; padding: 8px; background: rgba(255,255,255,.94); box-shadow: 0 6px 20px rgba(0,0,0,.18); cursor: crosshair; }
-  .mini svg { display: block; width: 100%; height: auto; }
-  .loading { position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8a97a3; pointer-events: none; }
+  /* tour 360° */
+  #tour { display: none; background: #111; overflow: hidden; touch-action: none; cursor: grab; user-select: none; }
+  #tour:active { cursor: grabbing; }
+  #pano { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .t-hot { position: absolute; inset: 0; pointer-events: none; }
+  .t-spot { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 8px; opacity: 0; transition: opacity .2s; }
+  .t-ring { position: relative; width: 44px; height: 44px; border-radius: 50%; border: 2px solid rgba(255,255,255,.9); background: rgba(0,0,0,.35); backdrop-filter: blur(4px); display: grid; place-items: center; color: #fff; transition: transform .2s, background .2s; }
+  .t-ring svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .t-ping { position: absolute; inset: -2px; border-radius: 50%; border: 2px solid rgba(255,255,255,.5); animation: tping 2.2s cubic-bezier(0,0,.2,1) infinite; }
+  @keyframes tping { 75%, 100% { transform: scale(1.8); opacity: 0; } }
+  .t-spot:hover .t-ring { transform: scale(1.1); background: #f5b400; color: #111; }
+  .t-spotlbl { white-space: nowrap; padding: 4px 8px; border-radius: 3px; background: rgba(0,0,0,.6); color: #fff; font-size: 13px; font-weight: 600; backdrop-filter: blur(4px); }
+  .t-fade { position: absolute; inset: 0; background: #111; opacity: 1; transition: opacity .3s; pointer-events: none; }
+  .t-top { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 70px 30px 22px; background: linear-gradient(to bottom, rgba(0,0,0,.6), transparent); pointer-events: none; }
+  .t-label { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.72); }
+  .t-title { font-size: 22px; font-weight: 600; color: #fff; margin-top: 2px; }
+  .t-ctrl { pointer-events: auto; display: flex; gap: 2px; padding: 4px; border-radius: 4px; background: rgba(0,0,0,.45); backdrop-filter: blur(8px); }
+  .t-ctrl button { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 3px; color: rgba(255,255,255,.9); }
+  .t-ctrl button:hover { background: rgba(255,255,255,.15); }
+  .t-ctrl button[aria-pressed="true"] { background: #f5b400; color: #111; }
+  .t-ctrl svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .t-hint { position: absolute; left: 0; right: 0; bottom: 96px; margin: 0 auto; width: max-content; display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 14px; font-weight: 500; backdrop-filter: blur(4px); pointer-events: none; transition: opacity .5s; }
+  .t-hint svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 1.6; }
+  .t-loading { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; pointer-events: none; }
+  .t-strip { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 34px 20px 16px; background: linear-gradient(to top, rgba(0,0,0,.7), transparent); }
+  .t-strip button { flex: none; display: flex; align-items: center; gap: 8px; padding: 4px 12px 4px 4px; border-radius: 4px; border: 1px solid rgba(255,255,255,.2); background: rgba(0,0,0,.4); color: #fff; backdrop-filter: blur(8px); font-size: 13px; font-weight: 600; transition: border-color .2s; }
+  .t-strip button:hover { border-color: rgba(255,255,255,.6); }
+  .t-strip button[aria-selected="true"] { border-color: #f5b400; background: rgba(0,0,0,.6); }
+  .t-strip img { width: 56px; height: 36px; object-fit: cover; border-radius: 2px; }
   body[data-mode="tour"] #plan { display: none; }
   body[data-mode="tour"] #tour { display: block; }
   /* card thumbnails */
@@ -80,8 +95,8 @@
     .code { margin-top: 18px; font-size: 24px; }
     .rule { width: 150px; }
     .main { min-height: 70vh; }
-    .chips { right: 18px; bottom: 150px; }
-    .mini { width: 140px; }
+    .t-title { font-size: 18px; }
+    .t-hint { bottom: 80px; font-size: 12px; }
   }
 </style>
 <script type="importmap">
@@ -96,15 +111,24 @@
   <aside class="band" id="band"></aside>
   <main class="main">
     <section class="view" id="plan" aria-label="Pianta arredata"></section>
-    <section class="view" id="tour" aria-label="Tour 3D">
-      <div class="loading" id="loading">Preparazione del tour…</div>
-      <div class="here"><small>Sei in</small><b id="here"></b></div>
-      <p class="thint" id="thint">Trascina per guardarti intorno · clicca il pavimento per camminare</p>
-      <div class="chips" id="chips"></div>
-      <div class="mini" id="mini" title="Clicca per spostarti"></div>
+    <section class="view" id="tour" aria-label="Tour 360°">
+      <canvas id="pano"></canvas>
+      <div class="t-hot" id="hot"></div>
+      <div class="t-fade" id="fade"></div>
+      <div class="t-top">
+        <div class="t-names"><p class="t-label" id="tLabel"></p><p class="t-title" id="tTitle"></p></div>
+        <div class="t-ctrl">
+          <button type="button" id="zin" title="Ingrandisci" aria-label="Ingrandisci"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button type="button" id="zout" title="Riduci" aria-label="Riduci"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+          <button type="button" id="rot" aria-pressed="true" title="Rotazione automatica" aria-label="Rotazione automatica"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></svg></button>
+        </div>
+      </div>
+      <p class="t-hint" id="tHint"><svg viewBox="0 0 24 24"><path d="M3 8h18v8H3zM7 12h.01M12 12h.01M17 12h.01"/></svg>Trascina per guardarti intorno</p>
+      <p class="t-loading" id="tLoad">Caricamento…</p>
+      <div class="t-strip" id="strip" role="tablist" aria-label="Stanze"></div>
     </section>
     <div class="tip" id="tip"></div>
-    <p class="phint" id="phint">Clicca una stanza per entrare nel tour 3D</p>
+    <p class="phint" id="phint">Clicca una stanza per entrare nel tour 360°</p>
     <a class="close" id="close" href="../#planimetrie" aria-label="Chiudi"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></a>
   </main>
 </div>

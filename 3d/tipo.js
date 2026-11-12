@@ -101,7 +101,7 @@ function renderBand() {
     </div>
     <div class="modes" role="group" aria-label="Vista">
       <button type="button" data-mode="plan">Pianta</button>
-      <button type="button" data-mode="tour">Tour 3D</button>
+      <button type="button" data-mode="tour">Tour 360°</button>
     </div>
     <div class="acts">
       <a class="main" href="../#contatti" id="ask">Richiedi informazioni</a>
@@ -415,7 +415,7 @@ function renderPlan() {
     p.addEventListener("mouseleave", () => (tip.style.display = "none"));
     p.addEventListener("click", () => {
       tip.style.display = "none";
-      startAt = [...r.anchor];
+      startAt = r.id;
       setMode("tour");
     });
   });
