@@ -37,6 +37,12 @@
   --o-tile-alpha: 0.2;
   --o-dim-alpha: 0.025;
   --o-glow: 0.45;
+  /* sun */
+  --sun: #ffc23d;
+  --on-sun: #1a1200;
+  --o-shade: rgba(0, 0, 0, 0.5);
+  --o-sun-ground: 0.2;
+  --o-sun-facade: 0.34;
   /* room groups */
   --k-day: #ffb547;
   --k-night: #9fb6ff;
@@ -94,6 +100,11 @@
   --o-tile-alpha: 0.2;
   --o-dim-alpha: 0.03;
   --o-glow: 0;
+  --sun: #e8a400;
+  --on-sun: #1a1200;
+  --o-shade: rgba(14, 38, 40, 0.16);
+  --o-sun-ground: 0.22;
+  --o-sun-facade: 0.4;
   --k-day: #9f600f;
   --k-night: #3149b0;
   --k-bath: #1f5f9e;
@@ -230,7 +241,7 @@
   position: absolute;
   z-index: 3;
   margin: 0;
-  bottom: calc(var(--tape-h) + 74px);
+  bottom: calc(var(--tape-h) + 104px);
   transition: opacity 0.6s;
   left: calc(var(--left-w) + 24px + (100% - var(--left-w) - var(--right-w) - 48px) / 2);
   transform: translateX(-50%);
@@ -999,6 +1010,90 @@ a.b3d-bar:hover .b3d-blbl > span:first-child {
   background: var(--signal);
 }
 
+/* Sun: season, time of day, the time on the sun and north on the ground */
+.b3d-sunbar {
+  display: grid;
+  gap: 6px;
+  padding: 8px 12px 8px 8px;
+}
+.b3d-sunrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.b3d-sunbar .b3d-modes button {
+  padding: 5px 10px !important;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+}
+.b3d-sunbar .b3d-modes button[aria-pressed="true"] {
+  background: var(--sun) !important;
+  color: var(--on-sun) !important;
+}
+.b3d-sunrange {
+  flex: 1;
+  min-width: 60px;
+}
+.b3d-sunrange::-webkit-slider-runnable-track {
+  height: 3px;
+  background: linear-gradient(90deg, var(--sun) var(--v, 50%), var(--line-strong) var(--v, 50%));
+}
+.b3d-sunrange::-moz-range-track {
+  height: 3px;
+  background: linear-gradient(90deg, var(--sun) var(--v, 50%), var(--line-strong) var(--v, 50%));
+}
+.b3d-sunrange::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  margin-top: -6.5px;
+  border-radius: 50%;
+  background: var(--panel-solid);
+  border: 2px solid var(--sun);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sun) 22%, transparent);
+}
+.b3d-sunrange::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--panel-solid);
+  border: 2px solid var(--sun);
+}
+.b3d-sunbar .b3d-value {
+  color: var(--sun);
+  min-width: 40px;
+}
+.b3d-sunnote {
+  margin: 0;
+  padding-left: 4px;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--mute);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.b3d-sunlabel {
+  translate: -50% calc(-100% - 16px);
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: var(--sun);
+  color: var(--on-sun);
+  font-family: var(--f-mono);
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.b3d-north {
+  translate: -50% -50%;
+  font-family: var(--f-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sun);
+}
+
 /* Availability tape */
 .b3d-tape {
   position: absolute;
@@ -1174,6 +1269,20 @@ a.b3d-bar:hover .b3d-blbl > span:first-child {
   }
   .b3d[data-narrow="true"]:has(.b3d-right[data-open="true"]) .b3d-console {
     bottom: calc(46% + 16px);
+  }
+  .b3d-console {
+    box-sizing: border-box;
+  }
+  /* seasons on one line, the time slider under them */
+  .b3d-sunrow {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .b3d-sunbar .b3d-modes {
+    flex: 1 1 100%;
+  }
+  .b3d-sunbar .b3d-modes button {
+    flex: 1;
   }
 }
 

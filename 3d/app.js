@@ -118,6 +118,85 @@ for (const f of floors) {
   }
 }
 
+/* ------------------------------------------------------------------ sun */
+/* Where the sun is over Corbetta, as in 3D-House (lib/sun.ts): the formulas of the Astronomical Almanac as simplified
+   by NOAA and SunCalc, accurate to a fraction of a degree. The plans have north to the left, 5° towards the bottom
+   (planimetria, tav. 01: via Volta runs north–south below the building), so the front façade, the plan's −y side,
+   faces 275°. */
+
+const SITE = { lat: 45.4693, lng: 8.921 };
+const FACING = 275;
+const RAD = Math.PI / 180;
+const OBLIQUITY = 23.4397 * RAD;
+
+function sunPosition(date) {
+  const d = date.getTime() / 86400000 + 2440587.5 - 2451545;
+  const M = (357.5291 + 0.98560028 * d) * RAD;
+  const C = (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M)) * RAD;
+  const L = M + C + (180 + 102.9372) * RAD;
+  const dec = Math.asin(Math.sin(OBLIQUITY) * Math.sin(L));
+  const ra = Math.atan2(Math.sin(L) * Math.cos(OBLIQUITY), Math.cos(L));
+  const H = (280.16 + 360.9856235 * d + SITE.lng) * RAD - ra;
+  const phi = SITE.lat * RAD;
+  const altitude = Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H));
+  const fromSouth = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(phi) - Math.tan(dec) * Math.cos(phi));
+  return { azimuth: (fromSouth / RAD + 180 + 360) % 360, altitude: altitude / RAD };
+}
+
+const SEASONS = {
+  winter: { label: "Inverno", day: [12, 21], name: "21 dicembre" },
+  equinox: { label: "Equinozio", day: [3, 21], name: "21 marzo" },
+  summer: { label: "Estate", day: [6, 21], name: "21 giugno" },
+};
+/** Offset of Italian clock time from UTC: summer time from the last Sunday of March to the last of October. */
+function italyOffset(year, month, day) {
+  const lastSunday = (m) => 31 - new Date(Date.UTC(year, m - 1, 31)).getUTCDay();
+  const after = month > 3 || (month === 3 && day >= lastSunday(3));
+  const before = month < 10 || (month === 10 && day < lastSunday(10));
+  return after && before ? 2 : 1;
+}
+function seasonTime(season, hours, year = 2026) {
+  const [m, d] = SEASONS[season].day;
+  return new Date(Date.UTC(year, m - 1, d) + (hours - italyOffset(year, m, d)) * 3600000);
+}
+/** The sun's path over a season's day, every 10 minutes, with sunrise and sunset in clock hours. */
+function sunDay(season) {
+  const path = [];
+  let rise = 12;
+  let set = 12;
+  for (let h = 3; h <= 23; h += 1 / 60) {
+    const p = sunPosition(seasonTime(season, h));
+    if (p.altitude > -0.833) {
+      if (rise === 12) rise = h;
+      set = h;
+    }
+    if (Math.round(h * 60) % 10 === 0) path.push(p);
+  }
+  return { path, rise, set };
+}
+/** Bearing a façade faces, from its outward normal in plan coordinates. */
+const facadeBearing = ([nx, ny]) => (((FACING + Math.atan2(-nx, -ny) / RAD) % 360) + 360) % 360;
+/** Light falling on a façade: 0 in shade, 1 with the sun square to it. */
+function facadeLight(bearing, sun) {
+  if (sun.altitude <= 0) return 0;
+  return Math.max(0, Math.cos((sun.azimuth - bearing) * RAD) * Math.cos(sun.altitude * RAD));
+}
+const clock = (h) => {
+  const m = Math.round(h * 60);
+  return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
+};
+
+function inRing([x, y], ring) {
+  let hit = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) hit = !hit;
+  }
+  return hit;
+}
+const inPoly = (p, poly) => inRing(p, poly.o) && !poly.h.some((h) => inRing(p, h));
+
 /* ------------------------------------------------------------------ palette */
 
 function parseColor(s, fb) {
@@ -147,6 +226,10 @@ function readPalette(el) {
     dark: v("--o-dark").trim() !== "0",
     edge: parseColor(v("--o-edge"), { r: 1, g: 1, b: 1, a: 0.6 }),
     signal: parseColor(v("--signal"), { r: 0.33, g: 0.89, b: 0.81, a: 1 }),
+    sun: parseColor(v("--sun"), { r: 1, g: 0.76, b: 0.24, a: 1 }),
+    shade: parseColor(v("--o-shade"), { r: 0, g: 0, b: 0, a: 0.1 }),
+    sunGround: num("--o-sun-ground", 0.1),
+    sunFacade: num("--o-sun-facade", 0.5),
     mute: parseColor(v("--mute"), GREY),
     group,
     fillAlpha: num("--o-fill-alpha", 0.12),
@@ -196,20 +279,25 @@ class BuildingEngine {
     this.signal = new THREE.Color();
     this.pointer = { x: 0, y: 0, down: null };
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, stencil: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.localClippingEnabled = true;
     this.renderer.domElement.className = "b3d-canvas";
     host.prepend(this.renderer.domElement);
 
-    this.scene.add(new THREE.AmbientLight(0xffffff, 1.1));
-    const sun = new THREE.DirectionalLight(0xffffff, 1.4);
-    sun.position.set(18, 30, 24);
-    this.scene.add(sun);
+    this.scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+    this.sunLight = new THREE.DirectionalLight(0xffffff, 1.4);
+    this.sunLight.position.set(18, 30, 24);
+    this.scene.add(this.sunLight);
 
     for (const f of b.floors) this.floors.push(this.buildFloor(f));
     this.dims = this.buildDims();
+    this.sun = null;
+    this.sunC = new THREE.Vector3();
+    this.sunR = 30;
+    this.sunRT = this.buildSun();
+    this.compass = this.buildCompass();
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
@@ -254,6 +342,19 @@ class BuildingEngine {
       }
     }
     setRGB(this.dims.line.color, p.mute);
+    const rt = this.sunRT;
+    for (const m of [rt.path.mat, rt.drop.mat, this.compass.mat]) setRGB(m.color, p.sun);
+    setRGB(rt.disc.material.color, p.sun);
+    setRGB(rt.glow.material.color, p.sun);
+    setRGB(rt.ground.material.color, p.sun);
+    setRGB(rt.shadow.material.color, p.shade);
+    for (const f of this.floors) for (const l of f.lit) setRGB(l.mat.color, p.sun);
+  }
+  /** The sun now and its path over the day. It is always shown: it lights the façades it faces, casts the
+      building's shadow on the ground and travels round whatever is framed, the whole building or an isolated part. */
+  setSun(sun) {
+    this.sun = sun;
+    this.layoutSun();
   }
   setExplode(v) {
     this.explode = v;
@@ -295,7 +396,7 @@ class BuildingEngine {
       const key = planes ? `${this.focus.unit}` : "";
       if (rt.clipKey === key) continue;
       rt.clipKey = key;
-      const mats = [rt.fill, rt.depthMat, rt.edges, rt.hidden, rt.details, rt.railings, ...rt.tiles.map((t) => t.mat)];
+      const mats = [rt.fill, rt.depthMat, rt.edges, rt.hidden, rt.details, rt.railings, ...rt.tiles.map((t) => t.mat), ...rt.lit.map((l) => l.mat)];
       for (const m of mats) {
         m.clippingPlanes = planes;
         m.needsUpdate = true;
@@ -326,6 +427,8 @@ class BuildingEngine {
     this.els.dims = new Map(q("[data-dim]").map((e) => [e.dataset.dim, e]));
     this.els.chip = this.overlay.querySelector("[data-chip]");
     this.els.target = this.overlay.querySelector("[data-target]");
+    this.els.sun = this.overlay.querySelector("[data-sun]");
+    this.els.north = this.overlay.querySelector("[data-north]");
     this.sizes.clear();
   }
   sizeOf(el) {
@@ -477,7 +580,50 @@ class BuildingEngine {
       outlines.set(u.unitId, { line: line.mat, halo: halo.mat, show: 0 });
     }
 
-    return { f, group, fill, depth, depthMat, clipKey: "", edges: edges.mat, hidden: hidden.mat, details: details.mat, railings: railings.mat, detailsObj: details.obj, tiles, outlines, y: 0, dim: 0, lift: 0 };
+    // Sunlit façades: a sheet just outside every stretch of outside wall, grouped by the bearing it faces and
+    // coloured by the light falling on it. A wall is outside when the ground beyond it is not an indoor room
+    // (a balcony or terrace counts as outside).
+    const lit = [];
+    if (f.level >= 0 && !f.roof) {
+      const indoor = f.rooms.filter((r) => !r.outdoor).flatMap((r) => r.polys);
+      const solid = (p) => f.wallPolys.some((w) => inPoly(p, w)) || indoor.some((q) => inPoly(p, q));
+      const byBearing = new Map();
+      for (const w of f.wallPolys) {
+        for (const ring of [w.o, ...w.h]) {
+          for (let i = 0; i < ring.length; i++) {
+            const a = ring[i];
+            const b = ring[(i + 1) % ring.length];
+            const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+            if (len < 0.3) continue;
+            const m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+            let n = [(b[1] - a[1]) / len, -(b[0] - a[0]) / len];
+            const out = (k) => !solid([m[0] + n[0] * k, m[1] + n[1] * k]);
+            if (!out(0.25)) n = [-n[0], -n[1]];
+            if (!out(0.25) || out(-0.08)) continue;
+            const bearing = Math.round(facadeBearing(n));
+            const g = new THREE.PlaneGeometry(len, WALL_H);
+            g.rotateY(Math.atan2(n[0], -n[1]));
+            const c = this.world(m[0] + n[0] * 0.04, WALL_H / 2, m[1] + n[1] * 0.04);
+            g.translate(c.x, c.y, c.z);
+            g.deleteAttribute("uv");
+            if (!byBearing.has(bearing)) byBearing.set(bearing, []);
+            byBearing.get(bearing).push(g);
+          }
+        }
+      }
+      for (const [bearing, geos] of byBearing) {
+        const mat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
+        const mesh = new THREE.Mesh(mergeGeometries(geos), mat);
+        geos.forEach((g) => g.dispose());
+        mesh.renderOrder = 1;
+        mesh.visible = false;
+        mesh.raycast = () => {};
+        group.add(mesh);
+        lit.push({ mesh, mat, bearing });
+      }
+    }
+
+    return { f, group, fill, depth, depthMat, clipKey: "", edges: edges.mat, hidden: hidden.mat, details: details.mat, railings: railings.mat, detailsObj: details.obj, tiles, outlines, lit, y: 0, dim: 0, lift: 0 };
   }
 
   buildDims() {
@@ -501,6 +647,172 @@ class BuildingEngine {
     group.add(obj);
     this.floors[0]?.group.add(group);
     return { line: mat, group };
+  }
+
+  /* -------- sun */
+  /** World direction of a compass bearing, and an altitude above the horizon. */
+  dirOf(bearing, altitude = 0) {
+    const o = (bearing - FACING) * RAD;
+    const h = altitude * RAD;
+    return new THREE.Vector3(-Math.sin(o) * Math.cos(h), Math.sin(h), Math.cos(o) * Math.cos(h));
+  }
+  sunPoint(p) {
+    return this.dirOf(p.azimuth, Math.max(0, p.altitude)).multiplyScalar(this.sunR).add(this.sunC);
+  }
+  /** The sun's disc, its path over the day, the lines that give its height and bearing, the sunlit ground
+      round the building and the building's shadow on it. */
+  buildSun() {
+    const group = new THREE.Group();
+    this.scene.add(group);
+    const dashed = (size, width) => {
+      const r = this.lineFromPositions(new Float32Array(6), { width, dashed: size, order: 3 });
+      r.mat.gapSize = size * 0.7;
+      r.mat.opacity = 0.7;
+      group.add(r.obj);
+      return r;
+    };
+    const path = dashed(0.9, 1.6);
+    const drop = dashed(0.5, 1);
+    const disc = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false }));
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(2.2, 24, 16), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.25, depthWrite: false }));
+    disc.renderOrder = glow.renderOrder = 7;
+    disc.raycast = glow.raycast = () => {};
+    group.add(glow, disc);
+
+    // the shadow is drawn first and marks the stencil, so the sunlit ground leaves it out and overlaps never darken twice
+    const shadow = new THREE.Mesh(
+      new THREE.BufferGeometry(),
+      new THREE.MeshBasicMaterial({
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        stencilWrite: true,
+        stencilRef: 1,
+        stencilFunc: THREE.NotEqualStencilFunc,
+        stencilZPass: THREE.ReplaceStencilOp,
+      }),
+    );
+    shadow.renderOrder = -2;
+    shadow.raycast = () => {};
+    const c = document.createElement("canvas");
+    c.width = c.height = 128;
+    const cx = c.getContext("2d");
+    const grad = cx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grad.addColorStop(0, "rgba(255,255,255,1)");
+    grad.addColorStop(0.65, "rgba(255,255,255,0.6)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    cx.fillStyle = grad;
+    cx.fillRect(0, 0, 128, 128);
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(1, 64).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({
+        transparent: true,
+        depthWrite: false,
+        map: new THREE.CanvasTexture(c),
+        stencilWrite: true,
+        stencilWriteMask: 0,
+        stencilRef: 1,
+        stencilFunc: THREE.NotEqualStencilFunc,
+      }),
+    );
+    ground.renderOrder = -1;
+    ground.raycast = () => {};
+    this.scene.add(shadow, ground);
+
+    // the building's outline at ground level, and its height to the top of the roof parapet
+    const typical = this.b.floors.find((f) => f.level === 1) ?? this.b.floors.find((f) => f.level === 0);
+    const rings = typical.slabPolys.map((p) => p.o);
+    const top = Math.max(...this.b.floors.map((f) => f.level)) * STOREY + SLAB + PARAPET;
+    return { group, path, drop, disc, glow, shadow, ground, rings, top };
+  }
+  /** A north arrow on the ground, off the building's north end (the plan's left), pointing away from it. */
+  buildCompass() {
+    const c = [this.b.x0 - 6, this.b.y0 + 2];
+    const r = 1.5;
+    const at = (bearing, d) => {
+      const v = this.dirOf(bearing);
+      return [c[0] + v.x * d, c[1] - v.z * d];
+    };
+    const segs = [];
+    for (let i = 0; i < 48; i++) {
+      const p = at(i * 7.5, r);
+      const q = at((i + 1) * 7.5, r);
+      segs.push([p[0], -SLAB + 0.02, p[1], q[0], -SLAB + 0.02, q[1]]);
+    }
+    const tip = at(0, r + 1.6);
+    const tail = at(180, r);
+    const off = (b) => at(b, 0.8).map((v, i) => v + tip[i] - c[i]);
+    const l = off(-150);
+    const rr = off(150);
+    segs.push([tail[0], -SLAB + 0.02, tail[1], tip[0], -SLAB + 0.02, tip[1]], [l[0], -SLAB + 0.02, l[1], tip[0], -SLAB + 0.02, tip[1]], [rr[0], -SLAB + 0.02, rr[1], tip[0], -SLAB + 0.02, tip[1]]);
+    const { obj, mat } = this.line(segs, { width: 1.4, order: 3 });
+    this.scene.add(obj);
+    return { obj, mat, tip, label: at(0, r + 2.6) };
+  }
+  /** Puts the sun on a dome over what is framed (the whole building, or the isolated floor or apartment), and
+      updates its light, the lit ground and the shadow. */
+  layoutSun(box = this.contentBox()) {
+    const rt = this.sunRT;
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const half = Math.hypot(size.x, size.z) / 2;
+    const whole = !this.focus.floor;
+    this.sunC.set(center.x, whole ? 0 : box.min.y, center.z);
+    this.sunR = whole ? half + 12 : half + 5;
+    const sun = this.sun;
+    rt.group.visible = !!sun;
+    if (!sun) return;
+    const pos = [];
+    const up = sun.path.filter((p) => p.altitude > -1);
+    for (let i = 0; i < up.length - 1; i++) {
+      const a = this.sunPoint(up[i]);
+      const b = this.sunPoint(up[i + 1]);
+      pos.push(a.x, a.y, a.z, b.x, b.y, b.z);
+    }
+    if (pos.length) {
+      rt.path.obj.geometry.setPositions(pos);
+      rt.path.obj.computeLineDistances();
+    }
+    const above = sun.now.altitude > 0;
+    const p = this.sunPoint(sun.now);
+    rt.disc.position.copy(p);
+    rt.glow.position.copy(p);
+    // the disc keeps its size against what is framed: about a metre over the whole building
+    rt.disc.scale.setScalar(this.sunR * 0.033);
+    rt.glow.scale.setScalar(this.sunR * 0.033);
+    rt.disc.visible = rt.glow.visible = above;
+    rt.drop.obj.geometry.setPositions([p.x, p.y, p.z, p.x, this.sunC.y, p.z, p.x, this.sunC.y, p.z, this.sunC.x, this.sunC.y, this.sunC.z]);
+    rt.drop.obj.computeLineDistances();
+    rt.drop.obj.visible = above;
+
+    const dir = this.dirOf(sun.now.azimuth, sun.now.altitude);
+    this.sunLight.position.copy(dir).multiplyScalar(100);
+    this.sunLight.intensity = above ? 0.35 + 1.25 * Math.sin(sun.now.altitude * RAD) : 0.15;
+
+    rt.ground.position.set(this.sunC.x, 0.004, this.sunC.z);
+    const gr = this.sunR * 1.05;
+    rt.ground.scale.set(gr, 1, gr);
+
+    // shadow: the outline swept from the ground to the top, away from the sun
+    const tri = [];
+    if (above) {
+      const k = Math.min(rt.top / Math.tan(Math.max(sun.now.altitude, 3) * RAD), 140);
+      const h = this.dirOf(sun.now.azimuth);
+      const off = [-h.x * k, h.z * k]; // in plan: x = world x, y = −world z
+      const W = (pt, s) => [pt[0] + off[0] * s - this.cx, 0.006, -(pt[1] + off[1] * s - this.cy)];
+      for (const ring of rt.rings) {
+        const v2 = ring.map(([x, y]) => new THREE.Vector2(x, y));
+        const faces = THREE.ShapeUtils.triangulateShape(v2, []);
+        for (const s of [0, 1]) for (const f of faces) for (const i of f) tri.push(...W(ring[i], s));
+        for (let i = 0; i < ring.length; i++) {
+          const a = ring[i];
+          const b = ring[(i + 1) % ring.length];
+          tri.push(...W(a, 0), ...W(b, 0), ...W(b, 1), ...W(a, 0), ...W(b, 1), ...W(a, 1));
+        }
+      }
+    }
+    rt.shadow.geometry.setAttribute("position", new THREE.Float32BufferAttribute(tri, 3));
+    rt.shadow.geometry.computeBoundingSphere();
   }
 
   /* -------- layout */
@@ -537,6 +849,11 @@ class BuildingEngine {
   }
   frame(animate, dur = 0.6, preset = false) {
     const box = this.contentBox();
+    // the sun's dome sits over what is framed, and the view takes it in
+    this.layoutSun(box.clone());
+    if (this.sun) {
+      for (const p of this.sun.path) if (p.altitude > 0) box.expandByPoint(this.sunPoint(p));
+    }
     const center = box.getCenter(new THREE.Vector3());
     const radius = box.getSize(new THREE.Vector3()).length() / 2;
     const { w, h } = this.size;
@@ -648,6 +965,12 @@ class BuildingEngine {
         const away = this.isolate && selUnit && t.room.unitId !== selUnit ? 0.15 : 1;
         t.mat.opacity = (base + t.hot * 0.22 + t.emph * 0.16) * (1 - 0.95 * d) * away;
       }
+      for (const l of rt.lit) {
+        // the square root keeps a high summer sun, which grazes the walls, readable
+        const o = this.sun ? pal.sunFacade * Math.sqrt(facadeLight(l.bearing, this.sun.now)) * (1 - 0.95 * d) : 0;
+        l.mat.opacity = o;
+        l.mesh.visible = o > 0.005;
+      }
       for (const [unitId, o] of rt.outlines) {
         const showT = unitId === selUnit ? 1 : unitId === hoverUnit ? 0.55 : 0;
         o.show = this.reduced ? showT : approach(o.show, showT, dt, 12);
@@ -659,6 +982,15 @@ class BuildingEngine {
     }
     this.dims.group.visible = this.layers.dims;
     this.dims.line.opacity = 0.8 * (1 - (this.floors[0]?.dim ?? 0));
+    // the ground, its shadow and the north arrow belong to the whole building
+    const whole = !this.focus.floor;
+    const srt = this.sunRT;
+    srt.ground.visible = !!this.sun && whole && this.sun.now.altitude > 0;
+    srt.shadow.visible = srt.ground.visible;
+    srt.ground.material.opacity = pal.sunGround;
+    srt.shadow.material.opacity = pal.shade.a;
+    this.compass.obj.visible = whole;
+    this.compass.mat.opacity = 0.75;
 
     if (this.anim) {
       const a = this.anim;
@@ -766,6 +1098,14 @@ class BuildingEngine {
       this.place(this.els.target, pts.every((p) => p.ok), bx, by);
     } else this.place(this.els.target, false);
 
+    // the time, on the sun; north, at the tip of the arrow
+    const sunUp = this.sun && this.sun.now.altitude > 0;
+    const ps = sunUp ? this.screen(this.sunRT.disc.position) : null;
+    this.place(this.els.sun, !!ps?.ok, ps?.x, ps?.y);
+    const nl = this.compass.label;
+    const pn = this.screen(this.world(nl[0], -SLAB, nl[1], 0));
+    this.place(this.els.north, !sel.floor && pn.ok, pn.x, pn.y);
+
     const g = this.floors[0];
     if (g) {
       const { x0, x1, y0, y1 } = this.b;
@@ -834,6 +1174,8 @@ function buildOverlay() {
       parts.push(`<span data-room="${r.id}" class="b3d-room" style="--c: var(--k-${r.group})">${esc(roomName(r))}<small>${fmtArea(r.area)}</small></span>`);
   parts.push(`<div data-chip class="b3d-chip" aria-hidden="true"></div>`);
   parts.push(`<div data-target class="b3d-target" aria-hidden="true"></div>`);
+  parts.push(`<span data-sun class="b3d-sunlabel" aria-hidden="true"></span>`);
+  parts.push(`<span data-north class="b3d-north" aria-hidden="true">N</span>`);
   parts.push(`<span data-dim="w" class="b3d-dim">${fmt(B.x1 - B.x0, 2, 2)} m</span>`);
   parts.push(`<span data-dim="d" class="b3d-dim">${fmt(B.y1 - B.y0, 2, 2)} m</span>`);
   overlayEl.innerHTML = parts.join("");
@@ -1093,8 +1435,8 @@ function updatePads() {
   state.narrow = w < 860;
   app.dataset.narrow = state.narrow ? "true" : "false";
   const pads = state.narrow
-    ? { t: 52 + 48, l: 0, r: 0, b: 16 + (state.sheet ? Math.round(h * 0.46) : 0) }
-    : { t: 52 + 8, l: w < 1100 ? 244 : 272, r: w < 1100 ? 352 : 392, b: 30 + 50 };
+    ? { t: 52 + 48, l: 0, r: 0, b: 16 + 118 + (state.sheet ? Math.round(h * 0.46) : 0) }
+    : { t: 52 + 8, l: w < 1100 ? 244 : 272, r: w < 1100 ? 352 : 392, b: 30 + 100 };
   engine?.setPads(pads);
 }
 
@@ -1121,6 +1463,57 @@ try {
 applyTheme(saved === "scuro" || saved === "chiaro" ? saved : "scuro", false);
 document.querySelectorAll("#themes [data-theme]").forEach((b) => b.addEventListener("click", () => applyTheme(b.dataset.theme, true)));
 
+/* -------- sun: season and time of day, always on */
+const sunState = (() => {
+  const now = new Date();
+  const m = now.getMonth() + 1;
+  // today's season and time, unless the link asks for one (?stagione=estate&ora=15.5)
+  const q = new URLSearchParams(location.search);
+  const named = { inverno: "winter", equinozio: "equinox", estate: "summer" }[q.get("stagione") ?? ""];
+  const season = named ?? (m >= 5 && m <= 7 ? "summer" : m >= 11 || m <= 1 ? "winter" : "equinox");
+  const ora = parseFloat(q.get("ora") ?? "");
+  return { season, hour: Number.isFinite(ora) ? ora : now.getHours() + now.getMinutes() / 60, day: null };
+})();
+const sunEls = {
+  seasons: document.getElementById("seasons"),
+  range: document.getElementById("sunTime"),
+  value: document.getElementById("sunClock"),
+  note: document.getElementById("sunNote"),
+};
+function applySun(fit = false) {
+  const day = (sunState.day = sunDay(sunState.season));
+  const lo = Math.ceil(day.rise * 4) / 4;
+  const hi = Math.floor(day.set * 4) / 4;
+  // outside daylight (a visit in the evening), the afternoon
+  if (sunState.hour < lo || sunState.hour > hi) sunState.hour = Math.min(hi, Math.max(lo, 14.5));
+  const h = sunState.hour;
+  sunEls.range.min = String(lo);
+  sunEls.range.max = String(hi);
+  sunEls.range.value = String(h);
+  sunEls.range.style.setProperty("--v", `${((h - lo) / (hi - lo)) * 100}%`);
+  sunEls.range.setAttribute("aria-valuetext", clock(h));
+  sunEls.value.textContent = clock(h);
+  sunEls.note.textContent = `${SEASONS[sunState.season].name} · Alba ${clock(day.rise)} · Tramonto ${clock(day.set)}`;
+  sunEls.seasons.querySelectorAll("[data-season]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.season === sunState.season)));
+  const label = overlayEl.querySelector("[data-sun]");
+  if (label) label.textContent = clock(h);
+  engine?.setSun({ now: sunPosition(seasonTime(sunState.season, h)), path: day.path });
+  if (fit) engine?.frame(true, 0.6);
+}
+sunEls.seasons.innerHTML = Object.entries(SEASONS)
+  .map(([k, s]) => `<button type="button" data-season="${k}" title="${s.name}">${s.label}</button>`)
+  .join("");
+sunEls.seasons.querySelectorAll("[data-season]").forEach((b) =>
+  b.addEventListener("click", () => {
+    sunState.season = b.dataset.season;
+    applySun(true);
+  }),
+);
+sunEls.range.addEventListener("input", () => {
+  sunState.hour = parseFloat(sunEls.range.value);
+  applySun();
+});
+
 document.getElementById("recenter").addEventListener("click", () => engine?.reset());
 const hint = document.getElementById("hint");
 stageEl.addEventListener("pointerdown", () => hint.setAttribute("data-hidden", "true"));
@@ -1146,6 +1539,8 @@ try {
   });
   engine.setPalette(readPalette(app));
   engine.setLayers(state.layers);
+  applySun();
+  engine.frame(false, 0, true);
 } catch (err) {
   console.error(err);
   const p = document.createElement("p");

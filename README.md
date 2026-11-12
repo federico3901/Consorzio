@@ -7,8 +7,11 @@ Landing page statica del progetto ATU 5A "Piazza Beretta" (Corbetta, MI).
 - `3d/` – vista 3D dell'edificio (Three.js da CDN, nessuna build): `index.html`, `app.js`, `style.css`
   e `building.json`, il modello ricavato dalle piante vettoriali (tav. 04, dic. 2025): muri, porte, finestre,
   stanze per appartamento, balconi e arredi. Comprende il piano interrato con box e cantine (tav. 03).
-  Link diretti: `3d/#p3` (un piano), `3d/#21` (un appartamento), `3d/#pi` (interrato); aggiungi `?isolato`
-  per aprirli isolati, es. `3d/?isolato#21`.
+  Link diretti: `3d/#p3` (un piano), `3d/#21` (un appartamento), `3d/#pi` (interrato); un piano o un
+  appartamento selezionato si apre sempre isolato.
+  Il sole è sempre attivo: posizione reale su Corbetta (nord dalla planimetria, tav. 01, facciata su via Volta
+  a 275°), stagione e ora scelte in basso, facciate esposte illuminate e ombra a terra. Si può aprire su un
+  momento preciso, es. `3d/?stagione=estate&ora=15.5`.
 
 - `3d/tipo.html?u=4|25|21` – appartamenti tipo: pianta arredata (`tipi.json`) e tour 360° (`&vista=tour`).
   Il tour (`tipo-tour.js`) mostra panorami equirettangolari in `3d/tour/` (immagini + `tour.json` con stanze,
