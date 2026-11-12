@@ -1,6 +1,6 @@
 /* 3D building view in the style of the «Atlante delle Forniture»: a drafting-paper stage at full bleed, console panels
-   floating on its edges, Saira Condensed for names, IBM Plex for text and figures. Two looks: «Plastico» (a white
-   model, the default) under [data-tema="plastico"] and «Silhouette» (dark, the tokens below). Every colour is a token;
+   floating on its edges, Saira Condensed for names, IBM Plex for text and figures. One look, «Plastico» (a white
+   model) under [data-tema="plastico"], set on #app; the tokens below are its dark base. Every colour is a token;
    the WebGL scene reads the --o-* and --k-* ones. Every class is prefixed b3d-. */
 
 .b3d {

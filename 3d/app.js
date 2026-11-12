@@ -25,7 +25,6 @@ const FOV = 28;
 const GAP = 4.2;
 const LIFT = 6;
 const VIEWS = { axo: { az: 36, el: 30 }, plan: { az: 0, el: 89 }, front: { az: 0, el: 5 } };
-const THEME_KEY = "piazza-beretta.3d.tema3";
 const NONE = { floor: null, unit: null };
 
 const GROUPS = ["day", "night", "bath", "serv", "park", "dist", "out", "plant"];
@@ -1109,7 +1108,6 @@ function distSeg([x, y], [ax, ay], [bx, by]) {
 /* ------------------------------------------------------------------ UI */
 
 const state = {
-  theme: "plastico",
   focus: { ...NONE },
   hover: null,
   layers: { labels: true, dims: false, furniture: true },
@@ -1386,28 +1384,7 @@ function updatePads() {
   engine?.setPads(pads);
 }
 
-/* -------- theme, controls */
-function applyTheme(t, save) {
-  state.theme = t;
-  app.dataset.tema = t;
-  document.querySelectorAll("#themes [data-theme]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.theme === t)));
-  if (save) {
-    try {
-      localStorage.setItem(THEME_KEY, t);
-    } catch {
-      /* the choice lasts for this visit */
-    }
-  }
-  engine?.setPalette(readPalette(app));
-}
-let saved = null;
-try {
-  saved = localStorage.getItem(THEME_KEY);
-} catch {
-  /* follow the default */
-}
-applyTheme(saved === "scuro" || saved === "plastico" ? saved : "plastico", false);
-document.querySelectorAll("#themes [data-theme]").forEach((b) => b.addEventListener("click", () => applyTheme(b.dataset.theme, true)));
+/* -------- controls (one look only: «Plastico», set on #app in index.html) */
 
 /* -------- sun: season and time of day, always on */
 const sunState = (() => {
@@ -1460,7 +1437,6 @@ sunEls.range.addEventListener("input", () => {
   applySun();
 });
 
-document.getElementById("recenter").addEventListener("click", () => engine?.reset());
 const hint = document.getElementById("hint");
 stageEl.addEventListener("pointerdown", () => hint.setAttribute("data-hidden", "true"));
 stageEl.addEventListener("wheel", () => hint.setAttribute("data-hidden", "true"), { passive: true });
