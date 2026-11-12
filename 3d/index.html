@@ -7,7 +7,7 @@
 <meta name="description" content="Piazza Beretta, Corbetta: l'edificio residenziale in 3D, piano per piano, generato dalle piante di progetto.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Saira+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Saira+Condensed:wght@600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <style>
   html, body { margin: 0; height: 100%; background: #000; }
@@ -16,7 +16,7 @@
   .b3d-facts div:first-child { border-top: 0; }
   .b3d-facts span { color: var(--mute); }
   .b3d-facts b { font-family: var(--f-mono); font-weight: 500; font-size: 11.5px; }
-  .b3d-hint { bottom: calc(var(--tape-h) + 104px); }
+  .b3d-hint { bottom: 104px; }
   .b3d-boot { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--mute); z-index: 1; pointer-events: none; }
 </style>
 <script type="importmap">
@@ -65,10 +65,6 @@
     <p class="b3d-sunnote" id="sunNote"></p>
   </div>
 
-  <div class="b3d-tape" aria-label="Appartamenti">
-    <span class="b3d-tape-tag">APPARTAMENTI</span>
-    <span class="b3d-tape-win"><span class="b3d-tape-track" id="tape"></span></span>
-  </div>
 </div>
 <script type="module" src="app.js"></script>
 </body>

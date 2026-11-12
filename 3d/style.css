@@ -56,7 +56,7 @@
   --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   --top-h: 52px;
-  --tape-h: 30px;
+  --tape-h: 0px;
   --left-w: 248px;
   --right-w: 368px;
 
@@ -196,21 +196,6 @@
   top: 0;
   visibility: hidden;
 }
-.b3d-leader-svg {
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  visibility: visible !important;
-}
-.b3d-leader-svg line {
-  stroke: var(--line-strong);
-  stroke-width: 1;
-  visibility: hidden;
-}
-.b3d-leader-svg line[data-current="true"] {
-  stroke: var(--signal);
-}
 
 /* Title block of the drawing */
 .b3d-cartouche {
@@ -274,48 +259,6 @@
 }
 
 /* Labels placed by the engine */
-.b3d-lead {
-  translate: 0 -50%;
-  pointer-events: auto;
-  display: flex !important;
-  align-items: center;
-  gap: 8px;
-  padding: 3px 9px 3px 4px !important;
-  border-radius: 3px;
-  background: var(--label-bg) !important;
-  color: var(--label-ink) !important;
-  border-left: 2px solid var(--line-strong) !important;
-  font-size: 11.5px;
-  font-weight: 500;
-  white-space: nowrap;
-  box-shadow: 0 4px 18px var(--shadow);
-  transition: color 0.2s;
-}
-.b3d-lead small {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-family: var(--f-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--mute);
-}
-.b3d-lead-code {
-  font-family: var(--f-mono);
-  font-size: 10px;
-  font-weight: 500;
-  min-width: 22px;
-  text-align: center;
-  padding: 1px 3px;
-  border-radius: 2px;
-  background: rgba(var(--tint), 0.08);
-}
-.b3d-lead:hover,
-.b3d-lead[data-current="true"] {
-  color: var(--signal) !important;
-  border-left-color: var(--signal) !important;
-}
 .b3d-tag {
   translate: -50% -50%;
   pointer-events: auto;
@@ -570,7 +513,7 @@
 }
 .b3d-frow {
   display: grid !important;
-  grid-template-columns: 34px 1fr auto;
+  grid-template-columns: 34px 1fr;
   align-items: center;
   gap: 8px;
   padding: 6px !important;
@@ -601,29 +544,6 @@
   font-size: 9.5px;
   color: var(--faint);
   letter-spacing: 0.04em;
-}
-.b3d-fcount {
-  font-family: var(--f-mono);
-  font-size: 10.5px;
-  color: var(--faint);
-}
-.b3d-key {
-  display: grid;
-  gap: 6px;
-  font-size: 12px;
-}
-.b3d-key span {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-.b3d-key i {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-  flex: none;
-  border: 1px solid var(--c);
-  background: color-mix(in srgb, var(--c) 30%, transparent);
 }
 .b3d-layer {
   display: flex !important;
@@ -918,6 +838,89 @@ a.b3d-bar:hover .b3d-blbl > span:first-child {
   background: color-mix(in srgb, var(--signal) 85%, var(--ink));
 }
 
+/* Side panels: a softer voice than the drawing on the stage. Montserrat as on the site, Fraunces for names,
+   sentence case instead of spaced capitals. */
+.b3d-panel {
+  --f-body: "Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "Montserrat", system-ui, sans-serif;
+  --f-display: "Fraunces", Georgia, serif;
+  font-family: var(--f-body);
+  font-size: 13px;
+}
+.b3d-panel .b3d-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--mute);
+}
+.b3d-panel .b3d-code {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.b3d-panel .b3d-fname {
+  font-size: 13px;
+  font-weight: 500;
+}
+.b3d-panel .b3d-fname small {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--mute);
+}
+.b3d-panel .b3d-layer {
+  font-size: 13px;
+}
+.b3d-panel .b3d-dhead h2 {
+  font-weight: 500;
+  font-size: 32px;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+.b3d-panel .b3d-back,
+.b3d-panel .b3d-act,
+.b3d-panel .b3d-pill,
+.b3d-panel .b3d-rn small,
+.b3d-panel .b3d-kpi span {
+  text-transform: none;
+  letter-spacing: 0;
+}
+.b3d-panel .b3d-back {
+  font-size: 12px !important;
+}
+.b3d-panel .b3d-act {
+  font-size: 12px;
+  font-weight: 500;
+}
+.b3d-panel .b3d-kpi b {
+  font-weight: 600;
+  font-size: 24px;
+}
+.b3d-panel .b3d-kpi span {
+  font-size: 11px;
+}
+.b3d-panel .b3d-rn {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.b3d-panel .b3d-rn small {
+  font-family: var(--f-body);
+  font-size: 11.5px;
+}
+.b3d-panel .b3d-rs,
+.b3d-panel .b3d-pct,
+.b3d-panel .b3d-bval {
+  font-size: 12px;
+}
+.b3d-panel .b3d-pill {
+  font-size: 11px;
+}
+.b3d-panel .b3d-facts b {
+  font-size: 12px;
+  font-weight: 600;
+}
+
 /* Console: explode slider */
 .b3d-console {
   position: absolute;
@@ -1100,67 +1103,6 @@ a.b3d-bar:hover .b3d-blbl > span:first-child {
   color: var(--sun);
 }
 
-/* Availability tape */
-.b3d-tape {
-  position: absolute;
-  z-index: 20;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: var(--tape-h);
-  display: flex;
-  align-items: center;
-  border-top: 1px solid var(--line);
-  background: rgba(var(--ground), 0.9);
-  overflow: hidden;
-}
-.b3d-tape-tag {
-  flex: none;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  padding: 0 12px 0 max(16px, env(safe-area-inset-left, 0px));
-  font-family: var(--f-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  color: var(--on-signal);
-  background: var(--signal);
-  font-weight: 500;
-}
-.b3d-tape-win {
-  overflow: hidden;
-  flex: 1;
-  min-width: 0;
-}
-.b3d-tape-track {
-  display: inline-flex;
-  white-space: nowrap;
-  animation: b3d-tape 90s linear infinite;
-  font-family: var(--f-mono);
-  font-size: 11px;
-  color: var(--mute);
-}
-.b3d-tape-track > span {
-  display: inline-flex;
-  gap: 30px;
-  padding-left: 30px;
-}
-.b3d-tape-track b {
-  color: var(--ink);
-  font-weight: 500;
-}
-.b3d-tape-track em {
-  font-style: normal;
-}
-.b3d-tape:hover .b3d-tape-track {
-  animation-play-state: paused;
-}
-@keyframes b3d-tape {
-  to {
-    transform: translateX(-50%);
-  }
-}
-
 /* Floors strip (phones) */
 .b3d-strip {
   display: none;
@@ -1183,7 +1125,6 @@ a.b3d-bar:hover .b3d-blbl > span:first-child {
     --right-w: 0px;
   }
   .b3d-left,
-  .b3d-tape,
   .b3d-hint,
   .b3d-bl {
     display: none !important;
@@ -1314,9 +1255,6 @@ a.b3d-bar:hover .b3d-blbl > span:first-child {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .b3d-tape-track {
-    animation: none;
-  }
   .b3d-right {
     transition: none;
   }

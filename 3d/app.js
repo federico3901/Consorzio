@@ -276,7 +276,7 @@ class BuildingEngine {
     this.anim = null;
     this.last = performance.now();
     this.reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-    this.els = { leaders: new Map(), lines: new Map(), tags: new Map(), labels: new Map(), chip: null, target: null, dims: new Map() };
+    this.els = { tags: new Map(), labels: new Map(), chip: null, target: null, dims: new Map() };
     this.raycaster = new THREE.Raycaster();
     this.sizes = new Map();
     this.written = new WeakMap();
@@ -424,8 +424,6 @@ class BuildingEngine {
   }
   refreshOverlay() {
     const q = (sel) => [...this.overlay.querySelectorAll(sel)];
-    this.els.leaders = new Map(q("[data-leader]").map((e) => [e.dataset.leader, e]));
-    this.els.lines = new Map(q("[data-leader-line]").map((e) => [e.dataset.leaderLine, e]));
     this.els.tags = new Map(q("[data-tag]").map((e) => [e.dataset.tag, e]));
     this.els.labels = new Map(q("[data-room]").map((e) => [e.dataset.room, e]));
     this.els.dims = new Map(q("[data-dim]").map((e) => [e.dataset.dim, e]));
@@ -649,7 +647,7 @@ class BuildingEngine {
     const { obj, mat } = this.line(segs, { order: 3 });
     const group = new THREE.Group();
     group.add(obj);
-    this.floors[0]?.group.add(group);
+    this.floors.find((rt) => rt.f.level === 0)?.group.add(group);
     return { line: mat, group };
   }
 
@@ -985,7 +983,7 @@ class BuildingEngine {
       }
     }
     this.dims.group.visible = this.layers.dims;
-    this.dims.line.opacity = 0.8 * (1 - (this.floors[0]?.dim ?? 0));
+    this.dims.line.opacity = 0.8 * (1 - (this.floors.find((rt) => rt.f.level === 0)?.dim ?? 0));
     // the ground, its shadow and the north arrow belong to the whole building
     const whole = !this.focus.floor;
     const srt = this.sunRT;
@@ -1031,27 +1029,6 @@ class BuildingEngine {
     const sel = this.focus;
     const roomById = new Map(this.floors.flatMap((rt) => rt.tiles.map((t) => [t.room.id, { rt, room: t.room }])));
 
-    const showLeaders = !narrow && !sel.unit;
-    const anchors = this.floors.map((rt) => ({ rt, p: this.screen(this.world(this.b.x1 + 0.4, WALL_H * 0.5, this.cy, rt.y)) }));
-    const colX = Math.min(Math.max(...anchors.map((a) => a.p.x)) + 44, w - this.pads.r - 190);
-    const sorted = [...anchors].sort((a, b) => b.p.y - a.p.y);
-    let lastY = Infinity;
-    for (const a of sorted) {
-      const y = Math.min(a.p.y, lastY - 30);
-      lastY = y;
-      const el = this.els.leaders.get(a.rt.f.id);
-      const ln = this.els.lines.get(a.rt.f.id);
-      const show = showLeaders && a.p.ok && a.rt.dim < 0.9 && a.rt.group.visible;
-      this.place(el, show, colX, y);
-      if (ln) {
-        ln.style.visibility = show ? "visible" : "hidden";
-        ln.setAttribute("x1", String(a.p.x));
-        ln.setAttribute("y1", String(a.p.y));
-        ln.setAttribute("x2", String(colX - 4));
-        ln.setAttribute("y2", String(y));
-      }
-    }
-
     const hoverUnit = this.hoverRoom ? roomById.get(this.hoverRoom)?.room.unitId : null;
     const placed = [];
     const fits = (el, x, y) => {
@@ -1076,7 +1053,7 @@ class BuildingEngine {
     for (const { rt, r } of rooms) {
       const el = this.els.labels.get(r.id);
       if (!el) continue;
-      const show = (sel.unit !== null && r.unitId === sel.unit && rt.f.id === sel.floor) || (this.layers.labels && sel.floor === rt.f.id && sel.unit === null);
+      const show = this.layers.labels && ((sel.unit !== null && r.unitId === sel.unit && rt.f.id === sel.floor) || (sel.floor === rt.f.id && sel.unit === null));
       const p = show ? this.screen(this.world(r.anchor[0], 0.05, r.anchor[1], rt.y)) : null;
       this.place(el, !!p && p.ok && fits(el, p.x, p.y), p?.x, p?.y);
     }
@@ -1110,7 +1087,7 @@ class BuildingEngine {
     const pn = this.screen(this.world(nl[0], -SLAB, nl[1], 0));
     this.place(this.els.north, !sel.floor && pn.ok, pn.x, pn.y);
 
-    const g = this.floors[0];
+    const g = this.floors.find((rt) => rt.f.level === 0);
     if (g) {
       const { x0, x1, y0, y1 } = this.b;
       const showDims = this.layers.dims && g.dim < 0.5;
@@ -1164,12 +1141,6 @@ function select(next) {
 /* -------- overlay (built once, the engine places it) */
 function buildOverlay() {
   const parts = [];
-  parts.push(`<svg class="b3d-leader-svg" aria-hidden="true">${floors.map((f) => `<line data-leader-line="${f.id}"/>`).join("")}</svg>`);
-  for (const f of floors) {
-    parts.push(
-      `<button type="button" data-leader="${f.id}" class="b3d-lead"><span class="b3d-lead-code">${floorCode(f)}</span>${esc(f.name)}${f.roof ? "" : f.level < 0 ? `<small>31 box</small>` : `<small>${f.units.length} app.</small>`}</button>`,
-    );
-  }
   for (const f of indoorFloors)
     for (const u of f.units)
       parts.push(`<button type="button" data-tag="${f.id}:${u.unitId}" data-unit="${u.unitId}" class="b3d-tag">${esc(u.unitId)}</button>`);
@@ -1183,23 +1154,9 @@ function buildOverlay() {
   parts.push(`<span data-dim="w" class="b3d-dim">${fmt(B.x1 - B.x0, 2, 2)} m</span>`);
   parts.push(`<span data-dim="d" class="b3d-dim">${fmt(B.y1 - B.y0, 2, 2)} m</span>`);
   overlayEl.innerHTML = parts.join("");
-  overlayEl.querySelectorAll("[data-leader]").forEach((el) =>
-    el.addEventListener("click", () => {
-      const id = el.dataset.leader;
-      select(state.focus.floor === id && !state.focus.unit ? { ...NONE } : { floor: id, unit: null });
-    }),
-  );
   overlayEl.querySelectorAll("[data-tag]").forEach((el) => el.addEventListener("click", () => select({ floor: null, unit: el.dataset.unit })));
 }
 function updateOverlayState() {
-  overlayEl.querySelectorAll("[data-leader]").forEach((el) => {
-    if (state.focus.floor === el.dataset.leader) el.setAttribute("data-current", "true");
-    else el.removeAttribute("data-current");
-  });
-  overlayEl.querySelectorAll("[data-leader-line]").forEach((el) => {
-    if (state.focus.floor === el.dataset.leaderLine) el.setAttribute("data-current", "true");
-    else el.removeAttribute("data-current");
-  });
   overlayEl.querySelectorAll("[data-tag]").forEach((el) => {
     if (state.focus.unit === el.dataset.unit) el.setAttribute("data-current", "true");
     else el.removeAttribute("data-current");
@@ -1225,17 +1182,12 @@ function renderLeft() {
         ${[...floors].reverse().map((f) => `
           <button type="button" class="b3d-frow" data-floor="${f.id}" ${state.focus.floor === f.id ? 'aria-current="true"' : ""}>
             <span class="b3d-code">${floorCode(f)}</span>
-            <span class="b3d-fname">${esc(f.name)}<small>${f.roof ? "Copertura piana" : f.level < 0 ? "Box 1–31 · cantine" : f.units.map((u) => u.unitId).join(" · ")}</small></span>
-            <span class="b3d-fcount">${f.roof || f.level < 0 ? "—" : f.units.length}</span>
+            <span class="b3d-fname">${esc(f.name)}<small>${f.roof ? "Copertura piana" : f.level < 0 ? "Box 1–31 · cantine" : `Interni ${f.units.map((u) => u.unitId).join(", ")}`}</small></span>
           </button>`).join("")}
       </div>
     </section>
     <section class="b3d-sec">
-      <h3 class="b3d-eyebrow">Legenda</h3>
-      <div class="b3d-key">${GROUPS.map((g) => `<span style="--c: var(--k-${g})"><i></i>${S.groups[g]}</span>`).join("")}</div>
-    </section>
-    <section class="b3d-sec">
-      <h3 class="b3d-eyebrow">Livelli</h3>
+      <h3 class="b3d-eyebrow">Mostra</h3>
       ${[["labels", "Nomi delle stanze"], ["furniture", "Arredi e sanitari"], ["dims", "Quote"]].map(([k, l]) => `
         <button type="button" class="b3d-layer" data-layer="${k}" aria-pressed="${state.layers[k]}"><span>${l}</span><i class="b3d-switch"></i></button>`).join("")}
     </section>`;
@@ -1411,16 +1363,6 @@ function renderRight() {
   );
 }
 
-function renderTape() {
-  const items = indoorFloors.flatMap((f) =>
-    f.units.map((u) => {
-      const i = UNITS.get(u.unitId);
-      return `<span><b>Int. ${esc(u.unitId)}</b> ${floorCode(f)} · ${i.typo.toLowerCase()} ${fmt(u.area, 0)} m²${u.outdoor ? ` · <em class="us-available">+ ${fmt(u.outdoor, 0)} m² ${i.outdoorKind}</em>` : ""}</span>`;
-    }),
-  );
-  document.getElementById("tape").innerHTML = [0, 1].map((k) => `<span${k ? ' aria-hidden="true"' : ""}>${items.join("")}</span>`).join("");
-}
-
 function renderPanels() {
   renderLeft();
   renderStrip();
@@ -1440,7 +1382,7 @@ function updatePads() {
   app.dataset.narrow = state.narrow ? "true" : "false";
   const pads = state.narrow
     ? { t: 52 + 48, l: 0, r: 0, b: 16 + 118 + (state.sheet ? Math.round(h * 0.46) : 0) }
-    : { t: 52 + 8, l: w < 1100 ? 244 : 272, r: w < 1100 ? 352 : 392, b: 30 + 100 };
+    : { t: 52 + 8, l: w < 1100 ? 244 : 272, r: w < 1100 ? 352 : 392, b: 110 };
   engine?.setPads(pads);
 }
 
@@ -1535,7 +1477,6 @@ document.getElementById("cartouche").innerHTML = `
 /* -------- start */
 buildOverlay();
 renderPanels();
-renderTape();
 try {
   engine = new BuildingEngine(stageEl, overlayEl, B, {
     hover: (id) => setHover(id),
