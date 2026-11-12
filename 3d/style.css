@@ -1,7 +1,7 @@
 /* 3D building view in the style of the «Atlante delle Forniture»: a drafting-paper stage at full bleed, console panels
-   floating on its edges, Saira Condensed for names, IBM Plex for text and figures. Two looks: «Silhouette» (dark, the
-   tokens below) and «Gesso» (light) under [data-tema="chiaro"]. Every colour is a token; the WebGL scene reads the
-   --o-* and --k-* ones (palette.ts). Every class is prefixed b3d-. */
+   floating on its edges, Saira Condensed for names, IBM Plex for text and figures. Two looks: «Plastico» (a white
+   model, the default) under [data-tema="plastico"] and «Silhouette» (dark, the tokens below). Every colour is a token;
+   the WebGL scene reads the --o-* and --k-* ones. Every class is prefixed b3d-. */
 
 .b3d {
   color-scheme: dark;
@@ -70,49 +70,55 @@
   line-height: 1.45;
 }
 
-.b3d[data-tema="chiaro"] {
+
+/* «Plastico» (the default): a white architectural model on a warm grey table, lit by the sun */
+.b3d[data-tema="plastico"] {
   color-scheme: light;
-  --void: #e3e8e8;
-  --ground: 227, 232, 232;
-  --tint: 14, 38, 40;
-  --panel: rgba(251, 252, 252, 0.93);
-  --panel-solid: #fbfcfc;
-  --line: rgba(14, 38, 40, 0.12);
-  --line-strong: rgba(14, 38, 40, 0.22);
-  --ink: #111718;
-  --mute: #4f5a5c;
-  --faint: #7b8688;
-  --signal: #066d64;
+  --void: #d8d4cc;
+  --ground: 216, 212, 204;
+  --tint: 40, 36, 30;
+  --panel: rgba(250, 248, 244, 0.93);
+  --panel-solid: #faf8f4;
+  --line: rgba(40, 36, 30, 0.12);
+  --line-strong: rgba(40, 36, 30, 0.22);
+  --ink: #1d1b18;
+  --mute: #5f5a52;
+  --faint: #8a8478;
+  --signal: #96764a;
   --on-signal: #fff;
   --label-bg: rgba(255, 255, 255, 0.95);
-  --label-ink: #111718;
+  --label-ink: #1d1b18;
   --chip-halo: rgba(255, 255, 255, 0.95);
-  --shadow: rgba(14, 38, 40, 0.16);
-  --vignette: rgba(227, 232, 232, 0.4);
-  --knob-off: #aab3b4;
-  --r-low: #1d7a3e;
-  --r-high: #9f600f;
+  --shadow: rgba(40, 36, 30, 0.16);
+  --vignette: rgba(200, 195, 186, 0.5);
+  --knob-off: #b5aea2;
+  --r-low: #3f7a4f;
+  --r-high: #96764a;
   --o-dark: 0;
-  --o-bg: #e3e8e8;
-  --o-grid: rgba(14, 38, 40, 0.08);
-  --o-edge: rgba(14, 38, 40, 0.7);
-  --o-fill-alpha: 0.12;
-  --o-tile-alpha: 0.2;
-  --o-dim-alpha: 0.03;
+  --o-bg: #dcd8d0;
+  --o-grid: rgba(40, 36, 30, 0.05);
+  --o-edge: rgba(40, 36, 30, 0.38);
+  --o-fill: #ffffff;
+  --o-fill-alpha: 0.97;
+  --o-edge-alpha: 0.5;
+  --o-hidden-alpha: 0;
+  --o-detail-alpha: 0.5;
+  --o-tile-alpha: 0.32;
+  --o-dim-alpha: 0.05;
   --o-glow: 0;
-  --sun: #e8a400;
-  --on-sun: #1a1200;
-  --o-shade: rgba(14, 38, 40, 0.16);
-  --o-sun-ground: 0.22;
-  --o-sun-facade: 0.4;
-  --k-day: #9f600f;
-  --k-night: #3149b0;
-  --k-bath: #1f5f9e;
-  --k-serv: #6b5a3a;
-  --k-park: #6f3fa6;
-  --k-dist: #5d686a;
-  --k-out: #1d7a3e;
-  --k-plant: #625a00;
+  --sun: #e39b2d;
+  --on-sun: #fff;
+  --o-shade: rgba(60, 50, 34, 0.28);
+  --o-sun-ground: 0.12;
+  --o-sun-facade: 0.32;
+  --k-day: #c9893a;
+  --k-night: #5d74b8;
+  --k-bath: #3f8fbf;
+  --k-serv: #9b8a68;
+  --k-park: #8d6bb8;
+  --k-dist: #8a867e;
+  --k-out: #4f9a62;
+  --k-plant: #a39538;
 }
 
 :where(.b3d) button {

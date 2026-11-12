@@ -25,7 +25,7 @@ const FOV = 28;
 const GAP = 4.2;
 const LIFT = 6;
 const VIEWS = { axo: { az: 36, el: 30 }, plan: { az: 0, el: 89 }, front: { az: 0, el: 5 } };
-const THEME_KEY = "piazza-beretta.3d.tema2";
+const THEME_KEY = "piazza-beretta.3d.tema3";
 const NONE = { floor: null, unit: null };
 
 const GROUPS = ["day", "night", "bath", "serv", "park", "dist", "out", "plant"];
@@ -225,6 +225,7 @@ function readPalette(el) {
   return {
     dark: v("--o-dark").trim() !== "0",
     edge: parseColor(v("--o-edge"), { r: 1, g: 1, b: 1, a: 0.6 }),
+    fill: v("--o-fill").trim() ? parseColor(v("--o-fill"), null) : null,
     signal: parseColor(v("--signal"), { r: 0.33, g: 0.89, b: 0.81, a: 1 }),
     sun: parseColor(v("--sun"), { r: 1, g: 0.76, b: 0.24, a: 1 }),
     shade: parseColor(v("--o-shade"), { r: 0, g: 0, b: 0, a: 0.1 }),
@@ -236,6 +237,9 @@ function readPalette(el) {
     tileAlpha: num("--o-tile-alpha", 0.2),
     dimAlpha: num("--o-dim-alpha", 0.04),
     glow: num("--o-glow", 0.45),
+    edgeAlpha: num("--o-edge-alpha", 1),
+    hiddenAlpha: num("--o-hidden-alpha", 1),
+    detailAlpha: num("--o-detail-alpha", 1),
   };
 }
 
@@ -330,7 +334,7 @@ class BuildingEngine {
     this.pal = p;
     setRGB(this.signal, p.signal);
     for (const rt of this.floors) {
-      setRGB(rt.fill.color, p.edge);
+      setRGB(rt.fill.color, p.fill ?? p.edge);
       rt.fill.emissive.copy(rt.fill.color).multiplyScalar(p.dark ? 0.25 : 0.1);
       setRGB(rt.edges.color, p.edge);
       setRGB(rt.hidden.color, p.edge);
@@ -949,9 +953,9 @@ class BuildingEngine {
       const d = rt.dim;
       rt.fill.opacity = THREE.MathUtils.lerp(pal.fillAlpha, pal.dimAlpha, d);
       rt.depth.visible = d < 0.5;
-      rt.edges.opacity = THREE.MathUtils.lerp(pal.dark ? 0.62 : 0.7, pal.dark ? 0.035 : 0.045, d);
-      rt.hidden.opacity = THREE.MathUtils.lerp(pal.dark ? 0.09 : 0.12, 0, d);
-      rt.details.opacity = THREE.MathUtils.lerp(0.55, 0.02, d);
+      rt.edges.opacity = THREE.MathUtils.lerp(pal.dark ? 0.62 : 0.7, pal.dark ? 0.035 : 0.045, d) * pal.edgeAlpha;
+      rt.hidden.opacity = THREE.MathUtils.lerp(pal.dark ? 0.09 : 0.12, 0, d) * pal.hiddenAlpha;
+      rt.details.opacity = THREE.MathUtils.lerp(0.55, 0.02, d) * pal.detailAlpha;
       rt.detailsObj.visible = this.layers.furniture;
       rt.railings.opacity = THREE.MathUtils.lerp(0.7, 0.03, d);
       for (const t of rt.tiles) {
@@ -1128,7 +1132,7 @@ function distSeg([x, y], [ax, ay], [bx, by]) {
 /* ------------------------------------------------------------------ UI */
 
 const state = {
-  theme: "scuro",
+  theme: "plastico",
   focus: { ...NONE },
   hover: null,
   layers: { labels: true, dims: false, furniture: true },
@@ -1460,7 +1464,7 @@ try {
 } catch {
   /* follow the default */
 }
-applyTheme(saved === "scuro" || saved === "chiaro" ? saved : "scuro", false);
+applyTheme(saved === "scuro" || saved === "plastico" ? saved : "plastico", false);
 document.querySelectorAll("#themes [data-theme]").forEach((b) => b.addEventListener("click", () => applyTheme(b.dataset.theme, true)));
 
 /* -------- sun: season and time of day, always on */
