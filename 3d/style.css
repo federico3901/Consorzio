@@ -301,6 +301,10 @@
   color: var(--c);
   letter-spacing: 0.04em;
 }
+.b3d-overlay[data-names="false"] .b3d-rname,
+.b3d-overlay[data-quotes="false"] .b3d-room small {
+  display: none;
+}
 .b3d-chip {
   translate: -50% calc(-100% - 12px);
   font-size: 11px;

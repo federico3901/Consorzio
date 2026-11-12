@@ -409,8 +409,12 @@ class BuildingEngine {
   setHover(id) {
     this.hoverRoom = id;
   }
+  /** Layers: «Nomi delle stanze» shows the room names, «Quote» their areas and the building's overall dimensions. */
   setLayers(l) {
     this.layers = { ...l };
+    this.overlay.dataset.names = String(!!l.labels);
+    this.overlay.dataset.quotes = String(!!l.dims);
+    this.sizes.clear();
   }
   setPads(p) {
     this.pads = p;
@@ -1052,7 +1056,7 @@ class BuildingEngine {
     for (const { rt, r } of rooms) {
       const el = this.els.labels.get(r.id);
       if (!el) continue;
-      const show = this.layers.labels && ((sel.unit !== null && r.unitId === sel.unit && rt.f.id === sel.floor) || (sel.floor === rt.f.id && sel.unit === null));
+      const show = (this.layers.labels || this.layers.dims) && ((sel.unit !== null && r.unitId === sel.unit && rt.f.id === sel.floor) || (sel.floor === rt.f.id && sel.unit === null));
       const p = show ? this.screen(this.world(r.anchor[0], 0.05, r.anchor[1], rt.y)) : null;
       this.place(el, !!p && p.ok && fits(el, p.x, p.y), p?.x, p?.y);
     }
@@ -1144,7 +1148,7 @@ function buildOverlay() {
       parts.push(`<button type="button" data-tag="${f.id}:${u.unitId}" data-unit="${u.unitId}" class="b3d-tag">${esc(u.unitId)}</button>`);
   for (const f of floors)
     for (const r of f.rooms)
-      parts.push(`<span data-room="${r.id}" class="b3d-room" style="--c: var(--k-${r.group})">${esc(roomName(r))}<small>${fmtArea(r.area)}</small></span>`);
+      parts.push(`<span data-room="${r.id}" class="b3d-room" style="--c: var(--k-${r.group})"><span class="b3d-rname">${esc(roomName(r))}</span><small>${fmtArea(r.area)}</small></span>`);
   parts.push(`<div data-chip class="b3d-chip" aria-hidden="true"></div>`);
   parts.push(`<div data-target class="b3d-target" aria-hidden="true"></div>`);
   parts.push(`<span data-sun class="b3d-sunlabel" aria-hidden="true"></span>`);
